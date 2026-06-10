@@ -22,6 +22,7 @@ export default function useAppController() {
   const [reqStart, setReqStart] = useState('09:00');
   const [reqEnd, setReqEnd] = useState('17:00');
   const [reqNote, setReqNote] = useState('');
+  const [editRequestId, setEditRequestId] = useState<number | null>(null);
   const [csUid, setCsUid] = useState<number>(USERS_INITIAL[0]?.id ?? 1);
   const [csDate, setCsDate] = useState(new Date().toISOString().slice(0,10));
   const [csStart, setCsStart] = useState('09:00');
@@ -63,6 +64,11 @@ export default function useAppController() {
       if (gachaTimeout.current) window.clearTimeout(gachaTimeout.current);
     };
   }, []);
+
+  const timeToMinutes = (time: string) => {
+    const [hh, mm] = time.split(':').map(Number);
+    return hh * 60 + mm;
+  };
 
   const toast = (message: string) => {
     setToastText(message);
@@ -158,7 +164,17 @@ export default function useAppController() {
 
     for (let day = 1; day <= daysInMonth; day += 1) {
       const dateKey = `${cyState}-${String(cmState + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dayShifts = shiftsParam.filter((shift) => shift.date === dateKey && shift.st === 'confirmed');
+      const dayShifts = shiftsParam.filter((shift) => {
+        if (shift.date !== dateKey) return false;
+        // confirmed and request are generally visible
+        if (shift.st === 'confirmed' || shift.st === 'request') return true;
+        // rejected: visible only to managers and the shift owner
+        if (shift.st === 'rejected') {
+          if (!currentUserParam) return false;
+          return currentUserParam.role === 'manager' || shift.uid === currentUserParam.id;
+        }
+        return false;
+      });
       const myShift = dayShifts.find((shift) => shift.uid === currentUserParam?.id);
       const isToday = dateKey === todayIso;
       cells.push({ type: 'day', day, dateKey, dayShifts, myShift, isToday });
@@ -173,16 +189,18 @@ export default function useAppController() {
     return { monthNames, dayNames, cells };
   };
 
-  const shiftTableRows = (shiftsParam: Shift[], usersParam: User[], isMgrParam: boolean, toastFn: (m: string)=>void, setShiftsFn: (fn:any)=>void) => {
+  const shiftTableRows = (shiftsParam: Shift[], usersParam: User[], currentUserParam: User | null, isMgrParam: boolean) => {
     const list = isMgrParam
-      ? [...shiftsParam].sort((a, b) => a.date.localeCompare(b.date))
-      : shiftsParam.filter((shift) => shift.uid === (usersParam.find(u=>u.id===usersParam[0].id)?.id ?? -1)).sort((a, b) => a.date.localeCompare(b.date));
+      ? [...shiftsParam].sort((a, b) => a.date.localeCompare(b.date) || a.s.localeCompare(b.s))
+      : shiftsParam.filter((shift) => shift.uid === currentUserParam?.id).sort((a, b) => a.date.localeCompare(b.date) || a.s.localeCompare(b.s));
 
     return list.map((shift) => {
       const user = usersParam.find((item) => item.id === shift.uid) ?? { name: '?' };
       const badge = shift.st === 'confirmed'
         ? { label: '確定', cls: 'b b-green' }
-        : { label: '希望', cls: 'b b-orange' };
+        : shift.st === 'request'
+          ? { label: '希望', cls: 'b b-orange' }
+          : { label: '却下', cls: 'b b-gray' };
       return { shift, user, badge };
     });
   };
@@ -195,11 +213,50 @@ export default function useAppController() {
 
   const gachaTask = (tasksParam: Task[], currentUserParam: User | null) => tasksParam.find((task) => task.to === currentUserParam?.id && task.st !== 'done');
 
-  const handleShiftRequestSubmit = (currentUserParam: User | null, date: string, s: string, e: string, setShiftsFn: (fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => {
-    if (!date||!s||!e){toastFn('日付と時間を入力してください');return;}
+  const handleShiftRequestSubmit = (currentUserParam: User | null, date: string, s: string, e: string, note: string, editId: number | null, setShiftsFn: (fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void, keepOpen = false, setEditRequestId?: (id: number | null) => void) => {
+    if (!date || !s || !e) { toastFn('日付と時間を入力してください'); return; }
     if (!currentUserParam) return;
-    setShiftsFn((prev:any)=>[...prev,{id:Date.now(),uid:currentUserParam.id,date,s,e,st:'request'}]);
-    setModalFn(null);toastFn('シフト希望を提出しました');
+    const start = timeToMinutes(s);
+    const end = timeToMinutes(e);
+    if (start >= end) { toastFn('開始時間は終了時間より前にしてください'); return; }
+    if (end - start > 540) { toastFn('希望時間は最長9時間までです'); return; }
+    if (editId) {
+      setShiftsFn((prev:any)=>prev.map((item:any)=>item.id === editId ? { ...item, s, e, note, st:'request' } : item));
+      toastFn('シフト希望を更新しました');
+      if (setEditRequestId) setEditRequestId(null);
+    } else {
+      setShiftsFn((prev:any)=>[...prev,{id:Date.now(),uid:currentUserParam.id,date,s,e,st:'request',note}]);
+      toastFn('シフト希望を提出しました');
+    }
+    if (!keepOpen) setModalFn(null);
+  };
+
+  const handleShiftConfirm = (id:number, setShiftsFn:(fn:any)=>void, toastFn:(m:string)=>void) => {
+    let invalid = false;
+    setShiftsFn((prev:any)=>prev.map((item:any)=>{
+      if (item.id !== id) return item;
+      const duration = timeToMinutes(item.e) - timeToMinutes(item.s);
+      if (duration > 540) {
+        invalid = true;
+        return item;
+      }
+      return { ...item, st:'confirmed' };
+    }));
+    if (invalid) {
+      toastFn('9時間以内のシフトのみ確定できます');
+      return;
+    }
+    toastFn('シフトを確定しました');
+  };
+
+  const handleShiftReject = (id:number, setShiftsFn:(fn:any)=>void, toastFn:(m:string)=>void) => {
+    setShiftsFn((prev:any)=>prev.map((item:any)=>item.id === id ? { ...item, st:'rejected' } : item));
+    toastFn('シフト希望を却下しました');
+  };
+
+  const handleShiftDelete = (id:number, setShiftsFn:(fn:any)=>void, toastFn:(m:string)=>void) => {
+    setShiftsFn((prev:any)=>prev.filter((item:any)=>item.id !== id));
+    toastFn('シフトを削除しました');
   };
 
   const handleShiftCreateSubmit = (csUidParam:number, csDateParam:string, csStartParam:string, csEndParam:string, setShiftsFn:(fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => {
@@ -268,7 +325,7 @@ export default function useAppController() {
     users, setUsers, shifts, setShifts, tasks, setTasks, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, setToastText, gachaLabel, setGachaLabel, gachaResult, setGachaResult, gachaLock, setGachaLock,
-    reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqNote, setReqNote,
+    reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqNote, setReqNote, editRequestId, setEditRequestId,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
     asName, setAsName, asRole, setAsRole, assignTaskId, setAssignTaskId, assignUid, setAssignUid,
@@ -276,6 +333,7 @@ export default function useAppController() {
     availableUsers, activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
     handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
+    handleShiftConfirm, handleShiftReject, handleShiftDelete,
     handleGacha, handleApproval, handleStaffCreate, approvalTasks, staffStats,
     gachaInterval, gachaTimeout,
   } as const;

@@ -1,5 +1,5 @@
 export type Role = 'manager' | 'staff' | 'part';
-export type ShiftStatus = 'confirmed' | 'request';
+export type ShiftStatus = 'confirmed' | 'request' | 'rejected';
 export type TaskStatus = 'pending' | 'in_progress' | 'review' | 'done';
 export type Priority = 'high' | 'mid' | 'low';
 
@@ -18,6 +18,7 @@ export interface Shift {
   s: string;
   e: string;
   st: ShiftStatus;
+  note?: string;
 }
 
 export interface Task {

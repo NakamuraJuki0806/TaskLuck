@@ -125,25 +125,33 @@ type ShiftRow = { shift: Shift; user: User | { name: string; ini?: string }; bad
 type ShiftViewProps = {
   isActive: boolean;
   isMgr: boolean;
-  onOpenShiftRequest: () => void;
+  currentUser: User;
   onOpenShiftCreate: () => void;
   cal: { monthNames: string[]; dayNames: string[]; cells: any[] } | null;
   currentMonthLabel: string;
   setCm: (fn: (prev: number) => number) => void;
+  personalCal: { monthNames: string[]; dayNames: string[]; cells: any[] } | null;
+  personalMonthLabel: string;
+  setPcm: (fn: (prev: number) => number) => void;
   shiftRows: ShiftRow[];
   users: User[];
   toast: (message: string) => void;
   setShifts: (fn: (prev: Shift[]) => Shift[]) => void;
-  csUid: number;
-  setCsUid: (value: number) => void;
-  csDate: string;
-  setCsDate: (value: string) => void;
-  csStart: string;
-  setCsStart: (value: string) => void;
-  csEnd: string;
-  setCsEnd: (value: string) => void;
+  myShifts: Shift[];
+  reqDate: string;
+  reqStart: string;
+  reqEnd: string;
+  reqNote: string;
+  setReqDate: (value: string) => void;
+  setReqStart: (value: string) => void;
+  setReqEnd: (value: string) => void;
+  setReqNote: (value: string) => void;
+  editRequestId: number | null;
+  setEditRequestId: (id: number | null) => void;
   onShiftRequestSubmit: () => void;
-  onShiftCreateSubmit: () => void;
+  onShiftConfirm: (id: number) => void;
+  onShiftReject: (id: number) => void;
+  onShiftDelete: (id: number) => void;
   onDateClick: (dateKey: string) => void;
   selectedDate: string | null;
   dayShifts: Array<{ shift: Shift; user: User }>;
@@ -158,132 +166,254 @@ const toMinutes = (time: string) => {
   return hh * 60 + mm;
 };
 
-export function ShiftView({ isActive, isMgr, onOpenShiftRequest, onOpenShiftCreate, cal, currentMonthLabel, setCm, shiftRows, users, toast, setShifts, csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd, onShiftRequestSubmit, onShiftCreateSubmit, onDateClick, selectedDate, dayShifts, shiftSortOrder, setShiftSortOrder, onCloseDayModal }: ShiftViewProps) {
+export function ShiftView({ isActive, isMgr, currentUser, onOpenShiftCreate, cal, currentMonthLabel, setCm, personalCal, personalMonthLabel, setPcm, shiftRows, users, toast, setShifts, myShifts, reqDate, reqStart, reqEnd, reqNote, setReqDate, setReqStart, setReqEnd, setReqNote, editRequestId, setEditRequestId, onShiftRequestSubmit, onShiftConfirm, onShiftReject, onShiftDelete, onDateClick, selectedDate, dayShifts, shiftSortOrder, setShiftSortOrder, onCloseDayModal }: ShiftViewProps) {
   const timelineStart = 8 * 60;
   const timelineEnd = 22 * 60;
   const timelineTotal = timelineEnd - timelineStart;
+  const visibleDayShifts = dayShifts.filter(({ shift }) => {
+    if (shift.st !== 'rejected') return true;
+    // rejected visible only to managers and the shift owner
+    if (currentUser.role === 'manager') return true;
+    if (currentUser.id === shift.uid) return true;
+    return false;
+  });
+
+  const handleEditRequest = (shift: Shift) => {
+    setEditRequestId(shift.id);
+    setReqDate(shift.date);
+    setReqStart(shift.s);
+    setReqEnd(shift.e);
+    setReqNote(shift.note ?? '');
+  };
+
+  const getGanttColor = (shift: Shift) => {
+    if (shift.st === 'confirmed') {
+      return currentUser.role !== 'part' ? '#bfdbfe' : '#93c5fd';
+    }
+    if (shift.st === 'rejected') {
+      return '#fecaca';
+    }
+    return '#d1d5db';
+  };
+
+  const personalShiftMap = myShifts.reduce((map, shift) => {
+    if (shift.st !== 'confirmed' && shift.st !== 'request') return map;
+    const existing = map.get(shift.date) ?? [];
+    map.set(shift.date, [...existing, shift]);
+    return map;
+  }, new Map<string, Shift[]>());
 
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-shift">
       <div className="ph">
         <div><div className="pt">シフト管理</div></div>
         <div style={{ display: 'flex', gap: '7px', flexWrap: 'wrap' }}>
-          <button className="btn" type="button" onClick={onOpenShiftRequest}>+ 希望を提出</button>
           {isMgr ? <button className="btn btn-dark" id="btn-cs" type="button" onClick={onOpenShiftCreate}>{'+ シフト作成'}</button> : null}
         </div>
       </div>
-      <div className="card" style={{ marginBottom: '12px' }}>
-        {cal ? (
-          <>
+      <div className="calendar-grid" style={{ marginBottom: '12px' }}>
+        <div className="card">
+          {cal ? (
+            <>
+              <div className="cal-nav">
+                <button className="btn btn-sm" type="button" onClick={() => setCm((prev) => prev - 1 < 0 ? 11 : prev - 1)}>‹‹</button>
+                <span className="cal-month">{currentMonthLabel}</span>
+                <button className="btn btn-sm" type="button" onClick={() => setCm((prev) => prev + 1 > 11 ? 0 : prev + 1)}>››</button>
+              </div>
+              <div className="cal-grid">
+                {cal.dayNames.map((dn) => <div className="cal-dn" key={dn}>{dn}</div>)}
+                {cal.cells.map((cell, idx) => {
+                  if (cell.type === 'prev' || cell.type === 'next') return <div className="cal-cell other" key={idx}><div className="cal-n">{cell.dateNumber}</div></div>;
+                  return (
+                    <div className={`cal-cell${cell.isToday ? ' today' : ''}`} key={cell.dateKey} onClick={() => onDateClick(cell.dateKey)}>
+                      <div className="cal-n">{cell.day}</div>
+                      {cell.myShift ? (
+                        <div className="cal-ev" style={{ background: getGanttColor(cell.myShift), color: '#1a1a1a' }}>{formatHour(cell.myShift.s)}-{formatHour(cell.myShift.e)}</div>
+                      ) : cell.dayShifts.slice(0, 2).map((shift: Shift) => {
+                        const u = users.find((it) => it.id === shift.uid) ?? { ini: '?' };
+                        const cls = shift.st === 'confirmed' ? 'cal-ev cal-ev-confirmed' : shift.st === 'rejected' ? 'cal-ev cal-ev-rejected' : 'cal-ev cal-ev-request';
+                        return <div className={cls} key={`s-${shift.id}`}>{u.ini} {formatHour(shift.s)}</div>;
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : null}
+        </div>
+
+        <div className="card">
+          <div className="cal-card-header">
+            <div className="sec-lbl">自分のシフトカレンダー</div>
             <div className="cal-nav">
-              <button className="btn btn-sm" type="button" onClick={() => setCm((prev) => prev - 1 < 0 ? 11 : prev - 1)}>‹‹</button>
-              <span className="cal-month">{currentMonthLabel}</span>
-              <button className="btn btn-sm" type="button" onClick={() => setCm((prev) => prev + 1 > 11 ? 0 : prev + 1)}>››</button>
+              <button className="btn btn-sm" type="button" onClick={() => setPcm((prev) => prev - 1 < 0 ? 11 : prev - 1)}>‹‹</button>
+              <span className="cal-month">{personalMonthLabel}</span>
+              <button className="btn btn-sm" type="button" onClick={() => setPcm((prev) => prev + 1 > 11 ? 0 : prev + 1)}>››</button>
             </div>
+          </div>
+          {personalCal ? (
             <div className="cal-grid">
-              {cal.dayNames.map((dn) => <div className="cal-dn" key={dn}>{dn}</div>)}
-              {cal.cells.map((cell, idx) => {
-                if (cell.type === 'prev' || cell.type === 'next') return <div className="cal-cell other" key={idx}><div className="cal-n">{cell.dateNumber}</div></div>;
+              {personalCal.dayNames.map((dn) => <div className="cal-dn" key={`my-${dn}`}>{dn}</div>)}
+              {personalCal.cells.map((cell, idx) => {
+                if (cell.type === 'prev' || cell.type === 'next') return <div className="cal-cell other" key={`my-${idx}`}><div className="cal-n">{cell.dateNumber}</div></div>;
+                const personalShifts = personalShiftMap.get(cell.dateKey) ?? [];
+                const personalClass = personalShifts.some((shift) => shift.st === 'confirmed')
+                  ? ' personal-confirmed'
+                  : personalShifts.some((shift) => shift.st === 'request')
+                    ? ' personal-request'
+                    : '';
                 return (
-                  <div className={`cal-cell${cell.isToday ? ' today' : ''}`} key={cell.dateKey} onClick={() => onDateClick(cell.dateKey)}>
+                  <div className={`cal-cell${cell.isToday ? ' today' : ''}${personalClass}`} key={`my-${cell.dateKey}`}>
                     <div className="cal-n">{cell.day}</div>
-                    {cell.myShift ? (
-                      <div className="cal-ev cal-ev-me">{formatHour(cell.myShift.s)}-{formatHour(cell.myShift.e)}</div>
-                    ) : cell.dayShifts.slice(0, 2).map((shift: Shift) => {
-                      const u = users.find((it) => it.id === shift.uid) ?? { ini: '?' };
-                      return <div className="cal-ev cal-ev-other" key={`s-${shift.id}`}>{u.ini} {formatHour(shift.s)}</div>;
-                    })}
                   </div>
                 );
               })}
             </div>
-          </>
-        ) : null}
+          ) : (
+            <div style={{ color: '#666', fontSize: '13px', padding: '12px 0' }}>カレンダーを読み込めませんでした</div>
+          )}
+        </div>
       </div>
 
-      <div className="card">
-        <div className="sec-lbl">シフト一覧</div>
-        <table className="tbl" id="stbl">
-          <thead>
-            <tr>
-              <th>日付</th>
-              <th>スタッフ</th>
-              <th>時間</th>
-              <th>状態</th>
-              {isMgr ? <th>操作</th> : null}
-            </tr>
-          </thead>
-          <tbody>
-            {shiftRows.map(({ shift, user, badge }) => (
-              <tr key={shift.id}>
-                <td>{shift.date}</td>
-                <td>{isMgr ? user.name : '自分'}</td>
-                <td style={{ fontVariantNumeric: 'tabular-nums' }}>{shift.s}–{shift.e}</td>
-                <td><span className={badge.cls}>{badge.label}</span></td>
-                {isMgr ? (
-                  <td style={{ display: 'flex', gap: '5px', padding: '8px 12px' }}>
-                    {shift.st === 'request' ? (
-                      <button className="btn btn-sm" type="button" style={{ color: '#15803d', borderColor: '#bbf7d0' }} onClick={() => {
-                        setShifts((prev) => prev.map((item) => item.id === shift.id ? { ...item, st: 'confirmed' } : item));
-                        toast('シフトを承認しました');
-                      }}>
-                        承認
-                      </button>
-                    ) : null}
-                    <button className="btn btn-sm btn-danger" type="button" onClick={() => {
-                      setShifts((prev) => prev.filter((item) => item.id !== shift.id));
-                      toast('削除しました');
-                    }}>
-                      削除
-                    </button>
-                  </td>
-                ) : null}
+      <div className="shift-grid">
+        <div className="card">
+          <div className="sec-lbl">自分のシフト</div>
+          {myShifts.length === 0 ? (
+            <div style={{ color: '#666', fontSize: '13px', padding: '12px 0' }}>自分のシフトはありません</div>
+          ) : (
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>日付</th>
+                  <th>時間</th>
+                  <th>状態</th>
+                </tr>
+              </thead>
+              <tbody>
+                {myShifts.map((shift) => (
+                  <tr key={shift.id}>
+                    <td>{shift.date}</td>
+                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{shift.s}–{shift.e}</td>
+                    <td><span className={shift.st === 'confirmed' ? 'b b-green' : shift.st === 'request' ? 'b b-orange' : 'b b-gray'}>{shift.st === 'confirmed' ? '確定' : shift.st === 'request' ? '希望' : '却下'}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="card">
+          <div className="sec-lbl">シフト一覧</div>
+          <table className="tbl" id="stbl">
+            <thead>
+              <tr>
+                <th>日付</th>
+                <th>スタッフ</th>
+                <th>時間</th>
+                <th>状態</th>
+                {isMgr ? <th>操作</th> : null}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {shiftRows.map(({ shift, user, badge }) => (
+                <tr key={shift.id}>
+                  <td>{shift.date}</td>
+                  <td>{isMgr ? user.name : '自分'}</td>
+                  <td style={{ fontVariantNumeric: 'tabular-nums' }}>{shift.s}–{shift.e}</td>
+                  <td><span className={badge.cls}>{badge.label}</span></td>
+                  {isMgr ? (
+                    <td style={{ display: 'flex', gap: '5px', padding: '8px 12px' }}>
+                      {shift.st === 'request' ? (
+                        <>
+                          <button className="btn btn-sm" type="button" style={{ color: '#15803d', borderColor: '#bbf7d0' }} onClick={() => onShiftConfirm(shift.id)}>
+                            確定
+                          </button>
+                          <button className="btn btn-sm btn-danger" type="button" onClick={() => onShiftReject(shift.id)}>
+                            却下
+                          </button>
+                        </>
+                      ) : (
+                        <button className="btn btn-sm btn-danger" type="button" onClick={() => onShiftDelete(shift.id)}>
+                          削除
+                        </button>
+                      )}
+                    </td>
+                  ) : null}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className={`overlay ${selectedDate ? 'open' : ''}`} id="modal-day-shifts" onClick={(event) => { if (event.target === event.currentTarget) onCloseDayModal(); }}>
         <div className="modal modal-wide">
           <h3>{selectedDate ? `${selectedDate} のシフト` : 'シフト詳細'}</h3>
-          <div className="sort-row">
-            <span>並び替え:</span>
-            <button className={`btn btn-sm ${shiftSortOrder === 'time' ? 'active-sort' : ''}`} type="button" onClick={() => setShiftSortOrder('time')}>時間順</button>
-            <button className={`btn btn-sm ${shiftSortOrder === 'name' ? 'active-sort' : ''}`} type="button" onClick={() => setShiftSortOrder('name')}>名前順</button>
-          </div>
-          {dayShifts.length === 0 ? (
-            <div style={{ color: '#666', fontSize: '13px', padding: '12px 0' }}>この日はシフトが登録されていません。</div>
-          ) : (
-            <div className="day-shifts-list">
-              <div className="gantt-ruler">
-                <span>08:00</span>
-                <span>12:00</span>
-                <span>16:00</span>
-                <span>20:00</span>
+          <div className="day-modal-content">
+            <div className="day-panel">
+              <div className="sort-row">
+                <span>並び替え:</span>
+                <button className={`btn btn-sm ${shiftSortOrder === 'time' ? 'active-sort' : ''}`} type="button" onClick={() => setShiftSortOrder('time')}>時間順</button>
+                <button className={`btn btn-sm ${shiftSortOrder === 'name' ? 'active-sort' : ''}`} type="button" onClick={() => setShiftSortOrder('name')}>名前順</button>
               </div>
-              {dayShifts.map(({ shift, user }) => {
-                const start = Math.max(timelineStart, toMinutes(shift.s));
-                const end = Math.min(timelineEnd, toMinutes(shift.e));
-                const left = ((start - timelineStart) / timelineTotal) * 100;
-                const width = Math.max(4, ((end - start) / timelineTotal) * 100);
-                return (
-                  <div className="day-shift-row" key={shift.id}>
-                    <div className="day-shift-info">
-                      <div className="day-shift-id">{user.id}</div>
-                      <div className="day-shift-name">{user.name}</div>
-                      <div className="day-shift-time">{formatHour(shift.s)}–{formatHour(shift.e)}</div>
-                    </div>
-                    <div className="gantt-track">
-                      <div className="gantt-bar" style={{ left: `${left}%`, width: `${width}%` }}>
-                        {formatHour(shift.s)}-{formatHour(shift.e)}
-                      </div>
-                    </div>
+              {visibleDayShifts.length === 0 ? (
+                <div style={{ color: '#666', fontSize: '13px', padding: '12px 0' }}>この日はシフトが登録されていません。</div>
+              ) : (
+                <div className="day-shifts-list">
+                  <div className="gantt-ruler">
+                    <span>08:00</span>
+                    <span>12:00</span>
+                    <span>16:00</span>
+                    <span>20:00</span>
                   </div>
-                );
-              })}
+                  {visibleDayShifts.map(({ shift, user }) => {
+                    const start = Math.max(timelineStart, toMinutes(shift.s));
+                    const end = Math.min(timelineEnd, toMinutes(shift.e));
+                    const left = ((start - timelineStart) / timelineTotal) * 100;
+                    const width = Math.max(4, ((end - start) / timelineTotal) * 100);
+                    const bgColor = getGanttColor(shift);
+                    return (
+                      <div className="day-shift-row" key={shift.id}>
+                        <div className="day-shift-info">
+                          <div className="day-shift-id">{user.id}</div>
+                          <div className="day-shift-name">{user.name}</div>
+                          <div className="day-shift-time">{formatHour(shift.s)}–{formatHour(shift.e)}</div>
+                        </div>
+                        <div className="gantt-track">
+                          <div className="gantt-bar" style={{ left: `${left}%`, width: `${width}%`, background: bgColor, color: shift.st === 'confirmed' && currentUser.role !== 'part' ? '#1d4ed8' : '#1a1a1a' }}>
+                            {formatHour(shift.s)}-{formatHour(shift.e)}
+                          </div>
+                        </div>
+                        <div className="day-shift-actions">
+                          {shift.st === 'request' && currentUser.role !== 'part' ? (
+                            <>
+                              <button className="btn btn-sm" type="button" onClick={() => onShiftConfirm(shift.id)}>確定</button>
+                              <button className="btn btn-sm btn-danger" type="button" onClick={() => onShiftReject(shift.id)}>却下</button>
+                            </>
+                          ) : null}
+                          {shift.uid === currentUser.id && shift.st === 'request' ? (
+                            <button className="btn btn-sm" type="button" onClick={() => handleEditRequest(shift)}>編集</button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
+
+            <div className="day-panel day-request-panel">
+              <div className="sec-lbl">シフト希望提出</div>
+              <div className="mfg"><label>日付</label><input type="date" value={reqDate} onChange={(event) => setReqDate(event.target.value)} /></div>
+              <div className="mfg"><label>開始時間</label><input type="time" value={reqStart} onChange={(event) => setReqStart(event.target.value)} /></div>
+              <div className="mfg"><label>終了時間</label><input type="time" value={reqEnd} onChange={(event) => setReqEnd(event.target.value)} /></div>
+              <div className="mfg"><label>備考</label><input type="text" value={reqNote} onChange={(event) => setReqNote(event.target.value)} placeholder="任意" /></div>
+              <div className="mf" style={{ justifyContent: 'flex-start' }}>
+                {editRequestId ? <button className="btn" type="button" onClick={() => setEditRequestId(null)}>編集キャンセル</button> : null}
+                <button className="btn btn-dark" type="button" onClick={onShiftRequestSubmit}>{editRequestId ? '更新' : '提出'}</button>
+              </div>
+            </div>
+          </div>
           <div className="mf">
             <button className="btn" type="button" onClick={onCloseDayModal}>閉じる</button>
           </div>

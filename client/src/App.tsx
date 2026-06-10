@@ -60,11 +60,13 @@ export default function App() {
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
     handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
     handleGacha, handleApproval, handleStaffCreate, approvalTasks, staffStats,
+    handleShiftConfirm, handleShiftReject, handleShiftDelete, editRequestId, setEditRequestId,
     gachaInterval, gachaTimeout,
   } = controller;
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [shiftSortOrder, setShiftSortOrder] = useState<'time' | 'name'>('time');
+  const [pcm, setPcm] = useState<number>(cm);
 
   const selectedDayShifts = useMemo(() => {
     if (!selectedDate) return [];
@@ -85,20 +87,31 @@ export default function App() {
 
   const handleCalendarDateClick = (dateKey: string) => {
     setSelectedDate(dateKey);
+    setReqDate(dateKey);
+    setEditRequestId(null);
     setModal('modal-day-shifts');
   };
 
   const handleCloseDayModal = () => {
     setModal(null);
     setSelectedDate(null);
+    setEditRequestId(null);
   };
+
+  const myShifts = useMemo(() => (
+    currentUser
+      ? shifts.filter((shift) => shift.uid === currentUser.id).sort((a, b) => a.date.localeCompare(b.date) || a.s.localeCompare(b.s))
+      : []
+  ), [shifts, currentUser]);
 
   const dsObj = dashboardStats(shifts, tasks, currentUser, isMgr, approvalCount);
   const todayShifts = renderTodayShifts(shifts, users, currentUser);
   const dashTasks = dashboardTasks(tasks, currentUser, isMgr);
   const cal = renderCalendar(cy, cm, shifts, users, currentUser);
   const currentMonthLabel = cal?.monthNames[cm] ?? '';
-  const shiftRows = shiftTableRows(shifts, users, isMgr, toast, setShifts);
+  const personalCal = renderCalendar(cy, pcm, shifts, users, currentUser);
+  const personalMonthLabel = personalCal?.monthNames[pcm] ?? '';
+  const shiftRows = shiftTableRows(shifts, users, currentUser, isMgr);
   const tasksForView = taskList(tasks, currentUser, isMgr, isStf ?? false, tFilter);
   const gachaTaskVal = gachaTask(tasks, currentUser);
   const staffStatsObj = staffStats(users);
@@ -201,30 +214,38 @@ export default function App() {
               <ShiftView
                 isActive={activePage === 'shift'}
                 isMgr={isMgr}
-                onOpenShiftRequest={() => setModal('modal-shift-req')}
+                currentUser={currentUser}
                 onOpenShiftCreate={() => { setModal('modal-cs'); setCsDate(todayIso); }}
                 cal={cal}
                 currentMonthLabel={currentMonthLabel}
                 setCm={setCm}
+                personalCal={personalCal}
+                personalMonthLabel={personalMonthLabel}
+                setPcm={setPcm}
                 shiftRows={shiftRows}
                 users={users}
                 toast={toast}
                 setShifts={setShifts}
-                csUid={csUid}
-                setCsUid={setCsUid}
-                csDate={csDate}
-                setCsDate={setCsDate}
-                csStart={csStart}
-                setCsStart={setCsStart}
-                csEnd={csEnd}
-                setCsEnd={setCsEnd}
-                onShiftRequestSubmit={() => handleShiftRequestSubmit(currentUser, reqDate, reqStart, reqEnd, setShifts, setModal, toast)}
-                onShiftCreateSubmit={() => handleShiftCreateSubmit(csUid, csDate, csStart, csEnd, setShifts, setModal, toast)}
-                onDateClick={handleCalendarDateClick}
+                myShifts={myShifts}
+                reqDate={reqDate}
+                reqStart={reqStart}
+                reqEnd={reqEnd}
+                reqNote={reqNote}
+                setReqDate={setReqDate}
+                setReqStart={setReqStart}
+                setReqEnd={setReqEnd}
+                setReqNote={setReqNote}
+                editRequestId={editRequestId}
+                setEditRequestId={setEditRequestId}
+                onShiftRequestSubmit={() => handleShiftRequestSubmit(currentUser, selectedDate ?? reqDate, reqStart, reqEnd, reqNote, editRequestId, setShifts, setModal, toast, true, setEditRequestId)}
+                onShiftConfirm={(id) => handleShiftConfirm(id, setShifts, toast)}
+                onShiftReject={(id) => handleShiftReject(id, setShifts, toast)}
+                onShiftDelete={(id) => handleShiftDelete(id, setShifts, toast)}
                 selectedDate={selectedDate}
                 dayShifts={selectedDayShifts}
                 shiftSortOrder={shiftSortOrder}
                 setShiftSortOrder={setShiftSortOrder}
+                onDateClick={handleCalendarDateClick}
                 onCloseDayModal={handleCloseDayModal}
               />
 
@@ -267,20 +288,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      <div className={`overlay ${modal === 'modal-shift-req' ? 'open' : ''}`} id="modal-shift-req" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
-        <div className="modal">
-          <h3>シフト希望を提出</h3>
-          <div className="mfg"><label>日付</label><input type="date" value={reqDate} onChange={(event) => setReqDate(event.target.value)} /></div>
-          <div className="mfg"><label>開始時間</label><input type="time" value={reqStart} onChange={(event) => setReqStart(event.target.value)} /></div>
-          <div className="mfg"><label>終了時間</label><input type="time" value={reqEnd} onChange={(event) => setReqEnd(event.target.value)} /></div>
-          <div className="mfg"><label>備考</label><input type="text" value={reqNote} onChange={(event) => setReqNote(event.target.value)} placeholder="任意" /></div>
-          <div className="mf">
-            <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
-            <button className="btn btn-dark" type="button" onClick={() => handleShiftRequestSubmit(currentUser, reqDate, reqStart, reqEnd, setShifts, setModal, toast)}>提出</button>
-          </div>
-        </div>
-      </div>
 
       <div className={`overlay ${modal === 'modal-cs' ? 'open' : ''}`} id="modal-cs" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
         <div className="modal">
