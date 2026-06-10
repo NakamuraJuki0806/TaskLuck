@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
-import { Role, Priority, TaskStatus, User, Shift, Task, GachaLog } from './models';
+import { Role, Priority, TaskStatus, User, Shift, Task } from './models';
 import useAppController from './controllers/useAppController';
 import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, StaffView } from './views/Views';
 
@@ -59,8 +59,8 @@ export default function App() {
     availableUsers, activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
     handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
-    handleGacha, handleApproval, handleStaffCreate, taskAction, approvalTasks, staffStats,
-    toastTimer, gachaInterval, gachaTimeout,
+    handleGacha, handleApproval, handleStaffCreate, approvalTasks, staffStats,
+    gachaInterval, gachaTimeout,
   } = controller;
 
   const dsObj = dashboardStats(shifts, tasks, currentUser, isMgr, approvalCount);
@@ -104,10 +104,6 @@ export default function App() {
   const statusBadge = (s: TaskStatus) => (
     <span className={`b ${s === 'pending' ? 'b-gray' : s === 'in_progress' ? 'b-blue' : s === 'review' ? 'b-orange' : 'b-green'}`}>{STATUS_LABELS[s]}</span>
   );
-
-  const formatDateLabel = (iso: string) => iso;
-
-  
 
   return (
     <>
