@@ -144,9 +144,25 @@ type ShiftViewProps = {
   setCsEnd: (value: string) => void;
   onShiftRequestSubmit: () => void;
   onShiftCreateSubmit: () => void;
+  onDateClick: (dateKey: string) => void;
+  selectedDate: string | null;
+  dayShifts: Array<{ shift: Shift; user: User }>;
+  shiftSortOrder: 'time' | 'name';
+  setShiftSortOrder: (order: 'time' | 'name') => void;
+  onCloseDayModal: () => void;
 };
 
-export function ShiftView({ isActive, isMgr, onOpenShiftRequest, onOpenShiftCreate, cal, currentMonthLabel, setCm, shiftRows, users, toast, setShifts, csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd, onShiftRequestSubmit, onShiftCreateSubmit }: ShiftViewProps) {
+const formatHour = (time: string) => time.slice(0, 5);
+const toMinutes = (time: string) => {
+  const [hh, mm] = time.split(':').map(Number);
+  return hh * 60 + mm;
+};
+
+export function ShiftView({ isActive, isMgr, onOpenShiftRequest, onOpenShiftCreate, cal, currentMonthLabel, setCm, shiftRows, users, toast, setShifts, csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd, onShiftRequestSubmit, onShiftCreateSubmit, onDateClick, selectedDate, dayShifts, shiftSortOrder, setShiftSortOrder, onCloseDayModal }: ShiftViewProps) {
+  const timelineStart = 8 * 60;
+  const timelineEnd = 22 * 60;
+  const timelineTotal = timelineEnd - timelineStart;
+
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-shift">
       <div className="ph">
@@ -169,13 +185,13 @@ export function ShiftView({ isActive, isMgr, onOpenShiftRequest, onOpenShiftCrea
               {cal.cells.map((cell, idx) => {
                 if (cell.type === 'prev' || cell.type === 'next') return <div className="cal-cell other" key={idx}><div className="cal-n">{cell.dateNumber}</div></div>;
                 return (
-                  <div className={`cal-cell${cell.isToday ? ' today' : ''}`} key={cell.dateKey}>
+                  <div className={`cal-cell${cell.isToday ? ' today' : ''}`} key={cell.dateKey} onClick={() => onDateClick(cell.dateKey)}>
                     <div className="cal-n">{cell.day}</div>
                     {cell.myShift ? (
-                      <div className="cal-ev cal-ev-me">{cell.myShift.s.slice(0, 5)}-{cell.myShift.e.slice(0, 5)}</div>
+                      <div className="cal-ev cal-ev-me">{formatHour(cell.myShift.s)}-{formatHour(cell.myShift.e)}</div>
                     ) : cell.dayShifts.slice(0, 2).map((shift: Shift) => {
                       const u = users.find((it) => it.id === shift.uid) ?? { ini: '?' };
-                      return <div className="cal-ev cal-ev-other" key={`s-${shift.id}`}>{u.ini} {shift.s.slice(0, 5)}</div>;
+                      return <div className="cal-ev cal-ev-other" key={`s-${shift.id}`}>{u.ini} {formatHour(shift.s)}</div>;
                     })}
                   </div>
                 );
@@ -184,6 +200,7 @@ export function ShiftView({ isActive, isMgr, onOpenShiftRequest, onOpenShiftCrea
           </>
         ) : null}
       </div>
+
       <div className="card">
         <div className="sec-lbl">シフト一覧</div>
         <table className="tbl" id="stbl">
@@ -225,6 +242,52 @@ export function ShiftView({ isActive, isMgr, onOpenShiftRequest, onOpenShiftCrea
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className={`overlay ${selectedDate ? 'open' : ''}`} id="modal-day-shifts" onClick={(event) => { if (event.target === event.currentTarget) onCloseDayModal(); }}>
+        <div className="modal modal-wide">
+          <h3>{selectedDate ? `${selectedDate} のシフト` : 'シフト詳細'}</h3>
+          <div className="sort-row">
+            <span>並び替え:</span>
+            <button className={`btn btn-sm ${shiftSortOrder === 'time' ? 'active-sort' : ''}`} type="button" onClick={() => setShiftSortOrder('time')}>時間順</button>
+            <button className={`btn btn-sm ${shiftSortOrder === 'name' ? 'active-sort' : ''}`} type="button" onClick={() => setShiftSortOrder('name')}>名前順</button>
+          </div>
+          {dayShifts.length === 0 ? (
+            <div style={{ color: '#666', fontSize: '13px', padding: '12px 0' }}>この日はシフトが登録されていません。</div>
+          ) : (
+            <div className="day-shifts-list">
+              <div className="gantt-ruler">
+                <span>08:00</span>
+                <span>12:00</span>
+                <span>16:00</span>
+                <span>20:00</span>
+              </div>
+              {dayShifts.map(({ shift, user }) => {
+                const start = Math.max(timelineStart, toMinutes(shift.s));
+                const end = Math.min(timelineEnd, toMinutes(shift.e));
+                const left = ((start - timelineStart) / timelineTotal) * 100;
+                const width = Math.max(4, ((end - start) / timelineTotal) * 100);
+                return (
+                  <div className="day-shift-row" key={shift.id}>
+                    <div className="day-shift-info">
+                      <div className="day-shift-id">{user.id}</div>
+                      <div className="day-shift-name">{user.name}</div>
+                      <div className="day-shift-time">{formatHour(shift.s)}–{formatHour(shift.e)}</div>
+                    </div>
+                    <div className="gantt-track">
+                      <div className="gantt-bar" style={{ left: `${left}%`, width: `${width}%` }}>
+                        {formatHour(shift.s)}-{formatHour(shift.e)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="mf">
+            <button className="btn" type="button" onClick={onCloseDayModal}>閉じる</button>
+          </div>
+        </div>
       </div>
     </div>
   );

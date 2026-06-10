@@ -63,6 +63,36 @@ export default function App() {
     gachaInterval, gachaTimeout,
   } = controller;
 
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [shiftSortOrder, setShiftSortOrder] = useState<'time' | 'name'>('time');
+
+  const selectedDayShifts = useMemo(() => {
+    if (!selectedDate) return [];
+    const list = shifts
+      .filter((shift) => shift.date === selectedDate)
+      .map((shift) => ({
+        shift,
+        user: users.find((item) => item.id === shift.uid) ?? { id: shift.uid, name: '不明', role: 'part', xp: 0, ini: '?' },
+      }));
+
+    return [...list].sort((a, b) => {
+      if (shiftSortOrder === 'name') {
+        return a.user.name.localeCompare(b.user.name) || a.shift.s.localeCompare(b.shift.s);
+      }
+      return a.shift.s.localeCompare(b.shift.s) || a.user.name.localeCompare(b.user.name);
+    });
+  }, [selectedDate, shifts, users, shiftSortOrder]);
+
+  const handleCalendarDateClick = (dateKey: string) => {
+    setSelectedDate(dateKey);
+    setModal('modal-day-shifts');
+  };
+
+  const handleCloseDayModal = () => {
+    setModal(null);
+    setSelectedDate(null);
+  };
+
   const dsObj = dashboardStats(shifts, tasks, currentUser, isMgr, approvalCount);
   const todayShifts = renderTodayShifts(shifts, users, currentUser);
   const dashTasks = dashboardTasks(tasks, currentUser, isMgr);
@@ -190,6 +220,12 @@ export default function App() {
                 setCsEnd={setCsEnd}
                 onShiftRequestSubmit={() => handleShiftRequestSubmit(currentUser, reqDate, reqStart, reqEnd, setShifts, setModal, toast)}
                 onShiftCreateSubmit={() => handleShiftCreateSubmit(csUid, csDate, csStart, csEnd, setShifts, setModal, toast)}
+                onDateClick={handleCalendarDateClick}
+                selectedDate={selectedDate}
+                dayShifts={selectedDayShifts}
+                shiftSortOrder={shiftSortOrder}
+                setShiftSortOrder={setShiftSortOrder}
+                onCloseDayModal={handleCloseDayModal}
               />
 
               <TaskView
