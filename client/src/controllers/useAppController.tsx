@@ -314,19 +314,6 @@ export default function useAppController() {
     setModalFn(null); toastFn('スタッフを追加しました');
   };
 
-  const taskAction = (task:Task, currentUserParam:User | null, isMgrParam:boolean, isStfParam:boolean, handlers:any) => {
-    if (!currentUserParam) return null;
-    if (isMgrParam) {
-      return { type: 'mgr', allowAssign: !task.to };
-    }
-    if (task.to === currentUserParam.id) {
-      if (task.st === 'pending') return { type: 'start' };
-      if (task.st === 'in_progress') return { type: 'reqDone' };
-      if (task.st === 'review') return { type: 'review' };
-    }
-    return null;
-  };
-
   const approvalTasks = tasks.filter((task)=>task.st==='review');
 
   const staffStats = (usersParam:User[]) => {
