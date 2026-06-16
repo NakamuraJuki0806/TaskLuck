@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Role, Priority, TaskStatus, User, Shift, Task, GachaLog, USERS_INITIAL, SHIFTS_INITIAL, TASKS_INITIAL } from '../models';
+import { Role, Priority, TaskStatus, User, Shift, Task, GachaLog, Notification, GachaSpeed, USERS_INITIAL, SHIFTS_INITIAL, TASKS_INITIAL, NOTIFICATIONS_INITIAL } from '../models';
 
 export default function useAppController() {
   const [selectedRole, setSelectedRole] = useState<'staff' | 'part'>('staff');
@@ -12,12 +12,16 @@ export default function useAppController() {
   const [cy, setCy] = useState(2025);
   const [cm, setCm] = useState(5);
   const [tFilter, setTFilter] = useState<TaskStatus | 'all'>('all');
-  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'task' | 'gacha' | 'approval' | 'staff'>('dashboard');
+  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'task' | 'gacha' | 'gacha-settings' | 'approval' | 'staff'>('dashboard');
   const [modal, setModal] = useState<string | null>(null);
   const [toastText, setToastText] = useState('');
   const [gachaLabel, setGachaLabel] = useState('タスクを引いてみよう…');
   const [gachaResult, setGachaResult] = useState<Task | null>(null);
   const [gachaLock, setGachaLock] = useState(false);
+  const [gachaEnabled, setGachaEnabled] = useState(true);
+  const [speedMode, setSpeedMode] = useState<GachaSpeed>('normal');
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>(NOTIFICATIONS_INITIAL);
   const [reqDate, setReqDate] = useState(new Date().toISOString().slice(0,10));
   const [reqStart, setReqStart] = useState('09:00');
   const [reqEnd, setReqEnd] = useState('17:00');
@@ -68,6 +72,16 @@ export default function useAppController() {
     setToastText(message);
   };
 
+  const unreadCount = notifications.filter((item) => !item.read && item.uid === currentUser?.id).length;
+  const toggleNotif = () => setNotificationOpen((prev) => !prev);
+  const readNotif = (id: number) => setNotifications((prev) => prev.map((item) => item.id === id ? { ...item, read: true } : item));
+  const clearNotifs = () => {
+    if (!currentUser) return;
+    setNotifications((prev) => prev.map((item) => item.uid === currentUser.id ? { ...item, read: true } : item));
+  };
+  const toggleGachaEnabled = () => setGachaEnabled((prev) => !prev);
+  const toggleTaskPool = (taskId: number) => setTasks((prev) => prev.map((task) => task.id === taskId ? { ...task, inPool: !task.inPool } : task));
+
   const handleLogin = () => {
     if (!loginUserId) {
       toast('アカウントを選択してください');
@@ -107,6 +121,7 @@ export default function useAppController() {
     { id: 'shift', lbl: 'シフト管理', ic: 'cal' },
     { id: 'task', lbl: 'タスク管理', ic: 'check' },
     { id: 'gacha', lbl: '闇鍋ガチャ', ic: 'dice', partOnly: true },
+    { id: 'gacha-settings', lbl: 'ガチャ設定', ic: 'shield', mgrOnly: true },
     { id: 'approval', lbl: '完了承認', ic: 'shield', mgrOnly: true },
     { id: 'staff', lbl: 'スタッフ管理', ic: 'users', mgrOnly: true },
   ].filter((item) => {
@@ -213,30 +228,75 @@ export default function useAppController() {
   const openAssignModal = (taskId:number, usersParam:User[], setAssignTaskIdFn:(n:number|null)=>void, setAssignUidFn:(n:number)=>void, setModalFn:(m:any)=>void) => { const partUser=usersParam.find((u)=>u.role==='part'); setAssignTaskIdFn(taskId); setAssignUidFn(partUser?.id??1); setModalFn('modal-assign'); };
   const handleAssignSubmit = (assignTaskIdParam:number|null, assignUidParam:number, setTasksFn:(fn:any)=>void, setModalFn:(m:any)=>void, usersParam:User[], toastFn:(m:string)=>void) => { if (!assignTaskIdParam) return; setTasksFn((prev:any)=>prev.map((task:any)=>task.id===assignTaskIdParam?{...task,to:assignUidParam,st:'in_progress'}:task)); const assignedUser = usersParam.find((u)=>u.id===assignUidParam); setModalFn(null); toastFn(`${assignedUser?.name ?? 'スタッフ'}に割り当てました`); };
   const handleTaskDelete = (id:number, setTasksFn:(fn:any)=>void, toastFn:(m:string)=>void) => { setTasksFn((prev:any)=>prev.filter((task:any)=>task.id!==id)); toastFn('削除しました'); };
-  const handleTaskCreateSubmit = (ctNameParam:string, ctDescParam:string, ctPriParam:Priority, ctXpParam:number, currentUserParam:User | null, setTasksFn:(fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => { if (!ctNameParam.trim()){ toastFn('タスク名を入力してください'); return; } if (!currentUserParam) return; setTasksFn((prev:any)=>[...prev,{id:Date.now(),name:ctNameParam.trim(),desc:ctDescParam.trim(),pri:ctPriParam,xp:ctXpParam,st:'pending',to:null,by:currentUserParam.id}]); setModalFn(null); toastFn('タスクを追加しました'); };
+  const handleTaskCreateSubmit = (ctNameParam:string, ctDescParam:string, ctPriParam:Priority, ctXpParam:number, currentUserParam:User | null, setTasksFn:(fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => { if (!ctNameParam.trim()){ toastFn('タスク名を入力してください'); return; } if (!currentUserParam) return; setTasksFn((prev:any)=>[...prev,{id:Date.now(),name:ctNameParam.trim(),desc:ctDescParam.trim(),pri:ctPriParam,xp:ctXpParam,st:'pending',to:null,by:currentUserParam.id,inPool:true}]); setModalFn(null); toastFn('タスクを追加しました'); };
 
-  const handleGacha = (tasksParam:Task[], currentUserParam:User | null, setTasksFn:(fn:any)=>void, setGachaLabelFn:(s:string)=>void, setGachaResultFn:(t:Task|null)=>void, setGLogFn:(fn:any)=>void, toastFn:(m:string)=>void, setGachaLockFn:(b:boolean)=>void, gachaIntervalRef:any, gachaTimeoutRef:any) => {
-    const avail = tasksParam.filter((task)=>task.st==='pending'&& !task.to);
-    if (!avail.length){ toastFn('引けるタスクがありません'); return; }
+  const finalizeGachaDraw = (chosen: Task, currentUserParam: User, setTasksFn:(fn:any)=>void, setGachaLabelFn:(s:string)=>void, setGachaResultFn:(t:Task|null)=>void, setGLogFn:(fn:any)=>void, toastFn:(m:string)=>void, setGachaLockFn:(b:boolean)=>void) => {
+    setTasksFn((prev:any) => prev.map((task:any) => task.id === chosen.id ? { ...task, st: 'in_progress', to: currentUserParam.id } : task));
+    setGachaLabelFn(chosen.name);
+    setGachaResultFn({ ...chosen, to: currentUserParam.id, st: 'in_progress' });
+    setGLogFn((prev:any) => [...prev, { name: chosen.name, xp: chosen.xp, timestamp: Date.now() }]);
+    toastFn(`「${chosen.name}」が当たりました`);
+    setGachaLockFn(false);
+  };
+
+  const skipGacha = () => {
+    if (!gachaLock) return;
+    if (gachaInterval.current) window.clearInterval(gachaInterval.current);
+    if (gachaTimeout.current) window.clearTimeout(gachaTimeout.current);
+    gachaInterval.current = null;
+    gachaTimeout.current = null;
+    if (!currentUser) {
+      setGachaLock(false);
+      return;
+    }
+    const avail = tasks.filter((task) => task.st === 'pending' && !task.to && task.inPool);
+    if (!avail.length) {
+      setGachaLock(false);
+      toast('引けるタスクがありません');
+      return;
+    }
+    const chosen = avail[Math.floor(Math.random() * avail.length)];
+    finalizeGachaDraw(chosen, currentUser, setTasks, setGachaLabel, setGachaResult, setGLog, toast, setGachaLock);
+  };
+
+  const handleGacha = (tasksParam:Task[], currentUserParam:User | null, setTasksFn:(fn:any)=>void, setGachaLabelFn:(s:string)=>void, setGachaResultFn:(t:Task|null)=>void, setGLogFn:(fn:any)=>void, toastFn:(m:string)=>void, setGachaLockFn:(b:boolean)=>void, gachaIntervalRef:any, gachaTimeoutRef:any, speedModeParam:GachaSpeed, gachaEnabledParam:boolean) => {
+    if (!gachaEnabledParam) { toastFn('ガチャが無効です'); return; }
+    const avail = tasksParam.filter((task) => task.st === 'pending' && !task.to && task.inPool);
+    if (!avail.length) { toastFn('引けるタスクがありません'); return; }
     if (!currentUserParam) return;
     setGachaLockFn(true);
     setGachaResultFn(null);
-    const pool = [...avail.map((task)=>task.name),'？？？','ランダム選出中…','🎲 運命のタスク'];
-    let pointer=0;
+
+    const speedConfig = {
+      normal: { interval: 90, timeout: 2200 },
+      fast: { interval: 40, timeout: 1200 },
+      skip: { interval: 0, timeout: 0 },
+    } as const;
+
+    const { interval, timeout } = speedConfig[speedModeParam];
+    const pool = [...avail.map((task) => task.name), '？？？', 'ランダム選出中…', '🎲 運命のタスク'];
+    let pointer = 0;
+
     if (gachaIntervalRef.current) window.clearInterval(gachaIntervalRef.current);
-    gachaIntervalRef.current = window.setInterval(()=>{ setGachaLabelFn(pool[pointer%pool.length]); pointer+=1; },90);
     if (gachaTimeoutRef.current) window.clearTimeout(gachaTimeoutRef.current);
-    gachaTimeoutRef.current = window.setTimeout(()=>{
+
+    if (speedModeParam === 'skip') {
+      const chosen = avail[Math.floor(Math.random() * avail.length)];
+      finalizeGachaDraw(chosen, currentUserParam, setTasksFn, setGachaLabelFn, setGachaResultFn, setGLogFn, toastFn, setGachaLockFn);
+      return;
+    }
+
+    gachaIntervalRef.current = window.setInterval(() => {
+      setGachaLabelFn(pool[pointer % pool.length]);
+      pointer += 1;
+    }, interval);
+
+    gachaTimeoutRef.current = window.setTimeout(() => {
       if (gachaIntervalRef.current) window.clearInterval(gachaIntervalRef.current);
       gachaIntervalRef.current = null;
-      const chosen = avail[Math.floor(Math.random()*avail.length)];
-      setTasksFn((prev:any)=>prev.map((task:any)=>task.id===chosen.id?{...task,st:'in_progress',to:currentUserParam.id}:task));
-      setGachaLabelFn(chosen.name);
-      setGachaResultFn({ ...chosen, to: currentUserParam.id, st: 'in_progress' });
-      setGLogFn((prev:any)=>[...prev,{ name: chosen.name, xp: chosen.xp }]);
-      toastFn(`「${chosen.name}」が当たりました`);
-      setGachaLockFn(false);
-    },2000);
+      const chosen = avail[Math.floor(Math.random() * avail.length)];
+      finalizeGachaDraw(chosen, currentUserParam, setTasksFn, setGachaLabelFn, setGachaResultFn, setGLogFn, toastFn, setGachaLockFn);
+    }, timeout);
   };
 
   const handleApproval = (id:number, approved:boolean, setTasksFn:(fn:any)=>void, tasksParam:Task[], setUsersFn:(fn:any)=>void, toastFn:(m:string)=>void) => {
@@ -268,6 +328,7 @@ export default function useAppController() {
     users, setUsers, shifts, setShifts, tasks, setTasks, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, setToastText, gachaLabel, setGachaLabel, gachaResult, setGachaResult, gachaLock, setGachaLock,
+    gachaEnabled, setGachaEnabled, speedMode, setSpeedMode, notificationOpen, setNotificationOpen, notifications, setNotifications, unreadCount, toggleNotif, readNotif, clearNotifs, toggleGachaEnabled, toggleTaskPool,
     reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
@@ -276,7 +337,7 @@ export default function useAppController() {
     availableUsers, activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
     handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
-    handleGacha, handleApproval, handleStaffCreate, approvalTasks, staffStats,
-    gachaInterval, gachaTimeout,
+    handleGacha, skipGacha, handleApproval, handleStaffCreate, taskAction, approvalTasks, staffStats,
+    toastTimer, gachaInterval, gachaTimeout,
   } as const;
 }
