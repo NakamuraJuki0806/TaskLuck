@@ -63,7 +63,7 @@ export default function App() {
     availableUsers, activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
     handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
-    handleGacha, skipGacha, handleApproval, handleStaffCreate, taskAction, approvalTasks, staffStats,
+    handleGacha, skipGacha, handleApproval, handleStaffCreate, approvalTasks, staffStats,
     toastTimer, gachaInterval, gachaTimeout,
   } = controller;
 
