@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Priority, TaskStatus, User, Shift, Task, GachaLog } from '../models';
+import { Priority, TaskStatus, User, Shift, Task, GachaLog, Notification } from '../models';
 
 type AuthViewProps = {
   selectedRole: 'staff' | 'part';
@@ -13,35 +13,27 @@ type AuthViewProps = {
 export function AuthView({ selectedRole, onSelectRole, loginUserId, setLoginUserId, userOptions, handleLogin }: AuthViewProps) {
   return (
     <div id="login-screen">
-      <div className="login-box">
-        <div className="login-logo">
-          <div className="login-logo-icon">T</div>
-          <div className="login-logo-name">TaskLuck</div>
+      <div className="lbox">
+        <div className="llogo">
+          <div className="llogo-ic">🍲</div>
+          <div className="llogo-nm">TaskLuck</div>
         </div>
-        <h2>アカウントを選択してログイン</h2>
-        <div className="role-tabs">
-          <button type="button" className={`role-tab ${selectedRole === 'staff' ? 'active' : ''}`} onClick={() => { onSelectRole('staff'); setLoginUserId(''); }}>
-            社員
-          </button>
-          <button type="button" className={`role-tab ${selectedRole === 'part' ? 'active' : ''}`} onClick={() => { onSelectRole('part'); setLoginUserId(''); }}>
-            アルバイト
-          </button>
-        </div>
+        <h2>ユーザーIDを入力してログイン</h2>
         <div className="fg">
-          <label>アカウント</label>
-          <select value={loginUserId} onChange={(event) => setLoginUserId(event.target.value ? Number(event.target.value) : '')}>
-            <option value="">選択してください</option>
-            {userOptions.map((user) => (
-              <option key={user.id} value={user.id}>{user.name}</option>
-            ))}
-          </select>
+          <label>ユーザーID</label>
+          <input
+            type="text"
+            value={loginUserId}
+            onChange={(event) => setLoginUserId(event.target.value ? Number(event.target.value) : '')}
+            placeholder="ユーザーIDを入力 (例: 1)"
+          />
         </div>
         <div className="fg">
           <label>パスワード</label>
           <input type="password" value="demo" readOnly placeholder="demo" />
         </div>
         <button className="btn-login" type="button" onClick={handleLogin}>ログイン</button>
-        <p className="hint">デモ用：パスワードは「demo」で固定</p>
+        <p className="lhint">デモ用：パスワードは「demo」で固定</p>
       </div>
     </div>
   );
@@ -157,8 +149,8 @@ export function ShiftView({ isActive, isMgr, onOpenShiftRequest, onOpenShiftCrea
         </div>
       </div>
       <div className="card" style={{ marginBottom: '12px' }}>
-        {cal ? (
-          <>
+            {cal ? (
+              <>
             <div className="cal-nav">
               <button className="btn btn-sm" type="button" onClick={() => setCm((prev) => prev - 1 < 0 ? 11 : prev - 1)}>‹‹</button>
               <span className="cal-month">{currentMonthLabel}</span>
@@ -309,40 +301,76 @@ type GachaViewProps = {
   gachaTaskVal: Task | undefined;
   gachaLock: boolean;
   priorityLabels: Record<Priority, string>;
+  gachaEnabled?: boolean;
+  speedMode?: 'normal' | 'fast' | 'skip';
+  setSpeedMode?: (mode: 'normal' | 'fast' | 'skip') => void;
+  onSkip?: () => void;
 };
 
-export function GachaView({ isActive, gachaLabel, gachaResult, gLog, handleGacha, gachaTaskVal, gachaLock, priorityLabels }: GachaViewProps) {
+export function GachaView({ isActive, gachaLabel, gachaResult, gLog, handleGacha, gachaTaskVal, gachaLock, priorityLabels, gachaEnabled = true, speedMode = 'normal', setSpeedMode, onSkip }: GachaViewProps) {
+  // pull totals derived from gLog
+  const pullTotal = gLog.length;
+  const pullLast = gLog.length ? gLog[gLog.length - 1].rarity ?? gLog[gLog.length - 1].name : '—';
+
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-gacha">
       <div className="ph"><div><div className="pt">闇鍋ガチャ</div><div className="ps">ランダムにタスクが割り当てられます</div></div></div>
-      <div className="card">
-        <div className="gacha-wrap">
-          <div className="drum"><div className="drum-txt" id="drum">{gachaLabel}</div></div>
-          <button className="gacha-btn" id="gbtn" type="button" onClick={handleGacha} disabled={Boolean(gachaTaskVal) || gachaLock}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 12l4-4"/><path d="M16 4h4v4"/></svg>
-            ガチャを引く
+      <div className="card" id="gacha-card" style={{ overflow: 'hidden', position: 'relative' }}>
+        <div className="gacha-idle" id="gacha-idle">
+          <div className="gp-pot" id="gp-pot">🍲</div>
+          <div className="gp-title">闇鍋ガチャ</div>
+          <div className="gp-sub">鍋の中身は誰も知らない。<br />レアリティが高ければ高いほど試練が待っている。</div>
+          <div className="pull-count-badge"><div className="pull-dot" /><span>通算 <b>{pullTotal}</b> 回 ／ 前回: <b>{pullLast}</b></span></div>
+          <button className="gp-btn" id="gp-btn" type="button" onClick={handleGacha} disabled={Boolean(gachaTaskVal) || gachaLock || !gachaEnabled}>
+            <span className="gpb-icon">🎲</span>
+            <span className="gpb-main">ガチャを引く</span>
+            <span className="gpb-sub">タップで闇鍋オープン</span>
           </button>
-          {gachaResult ? (
-            <div className="gacha-res" id="gres" style={{ display: 'block' }}>
-              <div className="gacha-res-lbl">割り当てられたタスク</div>
-              <div className="gacha-res-name" id="gr-name">{gachaResult.name}</div>
-              <div className="gacha-res-meta" id="gr-meta">優先度：{priorityLabels[gachaResult.pri]}　{gachaResult.desc}　報酬 +{gachaResult.xp} XP</div>
+          <div className="gacha-speed-row">
+            <span style={{ fontSize: '11px', color: '#bbb' }}>演出速度:</span>
+            <button className={`sp-btn ${speedMode === 'normal' ? 'on' : ''}`} type="button" onClick={() => setSpeedMode ? setSpeedMode('normal') : undefined}>通常</button>
+            <button className={`sp-btn ${speedMode === 'fast' ? 'on' : ''}`} type="button" onClick={() => setSpeedMode ? setSpeedMode('fast') : undefined}>速い</button>
+            <button className={`sp-btn ${speedMode === 'skip' ? 'on' : ''}`} type="button" onClick={() => setSpeedMode ? setSpeedMode('skip') : undefined}>スキップ</button>
+          </div>
+          {gachaTaskVal ? (
+            <div className="assigned-info" id="g-assigned">
+              <div className="ai-lbl">現在のタスク</div>
+              <div className="ai-name" id="g-aname">{gachaTaskVal.name}</div>
+              <div className="ai-meta" id="g-ameta">優先度 {priorityLabels[gachaTaskVal.pri]} / +{gachaTaskVal.xp} XP</div>
             </div>
           ) : null}
-          <div className="gacha-hist" id="ghist">
-            {gLog.length > 0 ? (
-              <>
-                <div className="sec-lbl" style={{ marginTop: '16px' }}>ガチャ履歴</div>
-                {gLog.slice().reverse().map((entry, index) => (
-                  <div className="ghe" key={`${entry.name}-${index}`}>
-                    <span style={{ fontWeight: 500 }}>{entry.name}</span>
-                    <span className="b b-gray">+{entry.xp} XP</span>
-                  </div>
-                ))}
-              </>
-            ) : null}
-          </div>
+          {!gachaEnabled ? (
+            <div className="gacha-disabled-msg" id="gacha-disabled">ガチャは現在無効です<br />社員がガチャ設定から有効化するまでお待ちください</div>
+          ) : null}
         </div>
+        <div className="gacha-hist" id="gacha-hist">
+          {gLog.length > 0 ? (
+            <>
+              <div className="gh-hdr">
+                <span className="gh-title">ガチャ履歴</span>
+              </div>
+              {gLog.slice().reverse().slice(0, 8).map((entry, index) => (
+                <div className="gh-item" key={`${entry.name}-${index}`}>
+                  <div className="gh-bar" />
+                  <div className="gh-info">
+                    <div className="gh-name">{entry.name}</div>
+                    <div className="gh-meta">{entry.rarity ?? 'NORMAL'} · {entry.time ?? ''}</div>
+                  </div>
+                  <span className="gh-xp">+{entry.xp} XP</span>
+                </div>
+              ))}
+            </>
+          ) : null}
+        </div>
+        {gachaLock ? (
+          <div className="gacha-overlay" id="gacha-ov" onClick={(event) => { if (event.target === event.currentTarget) onSkip?.(); }}>
+            <div className="gacha-overlay-card">
+              <div className="gacha-overlay-title">選出中…</div>
+              <div className="gacha-overlay-label">{gachaLabel}</div>
+              <button className="btn btn-sm btn-dark" type="button" onClick={() => onSkip?.()}>スキップ ▶▶</button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -399,6 +427,45 @@ export function ApprovalView({ isActive, approvalTasks, users, priorityBadge, ha
             })}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+type NotificationPanelProps = {
+  open: boolean;
+  notifications: Notification[];
+  unreadCount: number;
+  onClose: () => void;
+  onRead: (id: number) => void;
+  onClear: () => void;
+};
+
+export function NotificationPanel({ open, notifications, unreadCount, onClose, onRead, onClear }: NotificationPanelProps) {
+  return (
+    <div className={`notif-panel ${open ? 'open' : ''}`} id="notif-panel">
+      <div className="notif-hdr">
+        <div className="notif-title">通知</div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ fontSize: '13px', color: '#999' }}>{unreadCount} 未読</div>
+          <button className="notif-clear" type="button" onClick={onClear}>すべて既読</button>
+          <button className="btn btn-sm" type="button" onClick={onClose}>閉じる</button>
+        </div>
+      </div>
+      <div className="notif-list">
+        {notifications.length === 0 ? (
+          <div className="notif-empty">通知はありません</div>
+        ) : notifications.map((n) => (
+          <div key={n.id} className={`notif-item ${n.read ? '' : 'unread'}`} onClick={() => onRead(n.id)}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ minWidth: 0 }}>
+                <div className="notif-title">{n.title}</div>
+                <div className="notif-sub">{n.sub}</div>
+              </div>
+              {!n.read ? <div className="notif-dot" /> : null}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

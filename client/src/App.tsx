@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
-import { Role, Priority, TaskStatus, User, Shift, Task } from './models';
+import { Role, Priority, TaskStatus, User, Shift, Task, Notification } from './models';
 import useAppController from './controllers/useAppController';
-import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, StaffView } from './views/Views';
+import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, StaffView, NotificationPanel } from './views/Views';
 
 const ROLE_LABELS: Record<Role, string> = {
   manager: '店長',
@@ -39,6 +39,9 @@ const ICONS: Record<string, React.JSX.Element> = {
   shield: (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
   ),
+  bell: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 1 0-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+  ),
   users: (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
   ),
@@ -51,7 +54,8 @@ export default function App() {
     users, setUsers, shifts, setShifts, tasks, setTasks, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, setToastText, gachaLabel, setGachaLabel, gachaResult, setGachaResult, gachaLock, setGachaLock,
-    reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqNote, setReqNote,
+    gachaEnabled, speedMode, setSpeedMode, toggleGachaEnabled, toggleTaskPool, notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs,
+    reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
     asName, setAsName, asRole, setAsRole, assignTaskId, setAssignTaskId, assignUid, setAssignUid,
@@ -59,8 +63,8 @@ export default function App() {
     availableUsers, activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
     handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
-    handleGacha, handleApproval, handleStaffCreate, approvalTasks, staffStats,
-    gachaInterval, gachaTimeout,
+    handleGacha, skipGacha, handleApproval, handleStaffCreate, approvalTasks, staffStats,
+    toastTimer, gachaInterval, gachaTimeout,
   } = controller;
 
   const dsObj = dashboardStats(shifts, tasks, currentUser, isMgr, approvalCount);
@@ -68,9 +72,11 @@ export default function App() {
   const dashTasks = dashboardTasks(tasks, currentUser, isMgr);
   const cal = renderCalendar(cy, cm, shifts, users, currentUser);
   const currentMonthLabel = cal?.monthNames[cm] ?? '';
-  const shiftRows = shiftTableRows(shifts, users, isMgr, toast, setShifts);
+  const shiftRows = shiftTableRows(shifts, users, currentUser, isMgr);
   const tasksForView = taskList(tasks, currentUser, isMgr, isStf ?? false, tFilter);
   const gachaTaskVal = gachaTask(tasks, currentUser);
+  const pullTotal = gLog.length;
+  const pullLast = gLog.length ? gLog[gLog.length - 1].rarity ?? gLog[gLog.length - 1].name : '—';
   const staffStatsObj = staffStats(users);
 
   const renderTaskActions = (task: Task) => {
@@ -140,10 +146,11 @@ export default function App() {
                     className={`ni ${activePage === item.id ? 'active' : ''}`}
                     type="button"
                     id={`ni-${item.id}`}
-                    onClick={() => handleNav(item.id as typeof activePage)}
+                    onClick={() => item.id === 'notifications' ? toggleNotif() : handleNav(item.id as typeof activePage)}
                   >
                     {ICONS[item.ic]}<span>{item.lbl}</span>
                     {item.id === 'approval' && approvalCount > 0 ? <span className="ni-badge">{approvalCount}</span> : null}
+                    {item.id === 'notifications' && unreadCount > 0 ? <span className="ni-badge">{unreadCount}</span> : null}
                   </button>
                 ))}
               </nav>
@@ -232,12 +239,27 @@ export default function App() {
         </div>
       )}
 
+      {currentUser ? (
+        <NotificationPanel
+          open={notificationOpen}
+          notifications={currentUser.role === 'manager' ? notifications : notifications.filter((item: Notification) => item.uid === currentUser.id)}
+          unreadCount={unreadCount}
+          onClose={toggleNotif}
+          onRead={readNotif}
+          onClear={clearNotifs}
+        />
+      ) : null}
+
       <div className={`overlay ${modal === 'modal-shift-req' ? 'open' : ''}`} id="modal-shift-req" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
         <div className="modal">
           <h3>シフト希望を提出</h3>
           <div className="mfg"><label>日付</label><input type="date" value={reqDate} onChange={(event) => setReqDate(event.target.value)} /></div>
           <div className="mfg"><label>開始時間</label><input type="time" value={reqStart} onChange={(event) => setReqStart(event.target.value)} /></div>
           <div className="mfg"><label>終了時間</label><input type="time" value={reqEnd} onChange={(event) => setReqEnd(event.target.value)} /></div>
+          <div className="mfg"><label>希望休（出勤不可）</label><select value={reqOff ? 'yes' : 'no'} onChange={(event) => setReqOff(event.target.value === 'yes')}>
+            <option value="no">いいえ</option>
+            <option value="yes">はい（この日は出勤不可）</option>
+          </select></div>
           <div className="mfg"><label>備考</label><input type="text" value={reqNote} onChange={(event) => setReqNote(event.target.value)} placeholder="任意" /></div>
           <div className="mf">
             <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
