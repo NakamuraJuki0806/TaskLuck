@@ -13,35 +13,27 @@ type AuthViewProps = {
 export function AuthView({ selectedRole, onSelectRole, loginUserId, setLoginUserId, userOptions, handleLogin }: AuthViewProps) {
   return (
     <div id="login-screen">
-      <div className="login-box">
-        <div className="login-logo">
-          <div className="login-logo-icon">T</div>
-          <div className="login-logo-name">TaskLuck</div>
+      <div className="lbox">
+        <div className="llogo">
+          <div className="llogo-ic">🍲</div>
+          <div className="llogo-nm">TaskLuck</div>
         </div>
-        <h2>アカウントを選択してログイン</h2>
-        <div className="role-tabs">
-          <button type="button" className={`role-tab ${selectedRole === 'staff' ? 'active' : ''}`} onClick={() => { onSelectRole('staff'); setLoginUserId(''); }}>
-            社員
-          </button>
-          <button type="button" className={`role-tab ${selectedRole === 'part' ? 'active' : ''}`} onClick={() => { onSelectRole('part'); setLoginUserId(''); }}>
-            アルバイト
-          </button>
-        </div>
+        <h2>ユーザーIDを入力してログイン</h2>
         <div className="fg">
-          <label>アカウント</label>
-          <select value={loginUserId} onChange={(event) => setLoginUserId(event.target.value ? Number(event.target.value) : '')}>
-            <option value="">選択してください</option>
-            {userOptions.map((user) => (
-              <option key={user.id} value={user.id}>{user.name}</option>
-            ))}
-          </select>
+          <label>ユーザーID</label>
+          <input
+            type="text"
+            value={loginUserId}
+            onChange={(event) => setLoginUserId(event.target.value ? Number(event.target.value) : '')}
+            placeholder="ユーザーIDを入力 (例: 1)"
+          />
         </div>
         <div className="fg">
           <label>パスワード</label>
           <input type="password" value="demo" readOnly placeholder="demo" />
         </div>
         <button className="btn-login" type="button" onClick={handleLogin}>ログイン</button>
-        <p className="hint">デモ用：パスワードは「demo」で固定</p>
+        <p className="lhint">デモ用：パスワードは「demo」で固定</p>
       </div>
     </div>
   );
@@ -357,13 +349,13 @@ export function GachaView({ isActive, gachaLabel, gachaResult, gLog, handleGacha
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-gacha">
       <div className="ph"><div><div className="pt">闇鍋ガチャ</div><div className="ps">ランダムにタスクが割り当てられます</div></div></div>
-      <div className="card gacha-card" style={{ position: 'relative', overflow: 'hidden' }}>
-        <div className="gacha-idle">
-          <div className="gp-pot">🍲</div>
+      <div className="card" id="gacha-card" style={{ overflow: 'hidden', position: 'relative' }}>
+        <div className="gacha-idle" id="gacha-idle">
+          <div className="gp-pot" id="gp-pot">🍲</div>
           <div className="gp-title">闇鍋ガチャ</div>
-          <div className="gp-sub">鍋の中身は誰も知らない。レアリティが高ければ高いほど試練が待っている。</div>
-          <div className="drum" style={{ margin: '18px auto 18px', maxWidth: '280px' }}><div className="drum-txt">{gachaLabel}</div></div>
-          <button className="gp-btn" type="button" onClick={handleGacha} disabled={Boolean(gachaTaskVal) || gachaLock || !gachaEnabled}>
+          <div className="gp-sub">鍋の中身は誰も知らない。<br />レアリティが高ければ高いほど試練が待っている。</div>
+          <div className="pull-count-badge"><div className="pull-dot" /><span>通算 <b>{pullTotal}</b> 回 ／ 前回: <b>{pullLast}</b></span></div>
+          <button className="gp-btn" id="gp-btn" type="button" onClick={handleGacha} disabled={Boolean(gachaTaskVal) || gachaLock || !gachaEnabled}>
             <span className="gpb-icon">🎲</span>
             <span className="gpb-main">ガチャを引く</span>
             <span className="gpb-sub">タップで闇鍋オープン</span>
@@ -374,33 +366,38 @@ export function GachaView({ isActive, gachaLabel, gachaResult, gLog, handleGacha
             <button className={`sp-btn ${speedMode === 'fast' ? 'on' : ''}`} type="button" onClick={() => setSpeedMode('fast')}>速い</button>
             <button className={`sp-btn ${speedMode === 'skip' ? 'on' : ''}`} type="button" onClick={() => setSpeedMode('skip')}>スキップ</button>
           </div>
-          <div className="pull-count-badge"><div className="pull-dot" /><span>通算 <b>{pullTotal}</b> 回 ／ 前回: <b>{pullLast}</b></span></div>
           {gachaTaskVal ? (
-            <div className="assigned-info">
+            <div className="assigned-info" id="g-assigned">
               <div className="ai-lbl">現在のタスク</div>
-              <div className="ai-name">{gachaTaskVal.name}</div>
-              <div className="ai-meta">優先度 {priorityLabels[gachaTaskVal.pri]} / +{gachaTaskVal.xp} XP</div>
+              <div className="ai-name" id="g-aname">{gachaTaskVal.name}</div>
+              <div className="ai-meta" id="g-ameta">優先度 {priorityLabels[gachaTaskVal.pri]} / +{gachaTaskVal.xp} XP</div>
             </div>
           ) : null}
           {!gachaEnabled ? (
-            <div className="gacha-disabled-msg">ガチャは現在無効です。社員がガチャ設定から有効化するまでお待ちください</div>
+            <div className="gacha-disabled-msg" id="gacha-disabled">ガチャは現在無効です<br />社員がガチャ設定から有効化するまでお待ちください</div>
           ) : null}
         </div>
         <div className="gacha-hist" id="gacha-hist">
           {gLog.length > 0 ? (
             <>
-              <div className="sec-lbl" style={{ marginTop: '16px' }}>ガチャ履歴</div>
-              {gLog.slice().reverse().map((entry, index) => (
-                <div className="ghe" key={`${entry.name}-${index}`}>
-                  <span style={{ fontWeight: 500 }}>{entry.name}</span>
-                  <span className="b b-gray">+{entry.xp} XP</span>
+              <div className="gh-hdr">
+                <span className="gh-title">ガチャ履歴</span>
+              </div>
+              {gLog.slice().reverse().slice(0, 8).map((entry, index) => (
+                <div className="gh-item" key={`${entry.name}-${index}`}>
+                  <div className="gh-bar" />
+                  <div className="gh-info">
+                    <div className="gh-name">{entry.name}</div>
+                    <div className="gh-meta">{entry.rarity ?? 'NORMAL'} · {entry.time ?? ''}</div>
+                  </div>
+                  <span className="gh-xp">+{entry.xp} XP</span>
                 </div>
               ))}
             </>
           ) : null}
         </div>
         {gachaLock ? (
-          <div className="gacha-overlay">
+          <div className="gacha-overlay" id="gacha-ov" onClick={(event) => { if (event.target === event.currentTarget) onSkip(); }}>
             <div className="gacha-overlay-card">
               <div className="gacha-overlay-title">選出中…</div>
               <div className="gacha-overlay-label">{gachaLabel}</div>
