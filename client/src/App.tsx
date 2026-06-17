@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import { Role, Priority, TaskStatus, User, Shift, Task } from './models';
 import useAppController from './controllers/useAppController';
-import { AuthView, DashboardView, ShiftView, TaskView, GachaView, GachaSettingsView, ApprovalView, StaffView, NotificationPanel } from './views/Views';
+import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, StaffView } from './views/Views';
 
 const ROLE_LABELS: Record<Role, string> = {
   manager: '店長',
@@ -35,9 +35,6 @@ const ICONS: Record<string, React.JSX.Element> = {
   ),
   dice: (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="2" width="20" height="20" rx="3"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="16" cy="8" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="8" cy="16" r="1.2" fill="currentColor"/><circle cx="16" cy="16" r="1.2" fill="currentColor"/></svg>
-  ),
-  bell: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
   ),
   shield: (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -152,15 +149,6 @@ export default function App() {
                     {item.id === 'approval' && approvalCount > 0 ? <span className="ni-badge">{approvalCount}</span> : null}
                   </button>
                 ))}
-                <button
-                  className={`ni ${notificationOpen ? 'active' : ''}`}
-                  type="button"
-                  onClick={toggleNotif}
-                >
-                  {ICONS.bell}
-                  <span>通知</span>
-                  {unreadCount > 0 ? <span className="ni-badge">{unreadCount}</span> : null}
-                </button>
               </nav>
               <div className="sb-footer">
                 <button className="btn-logout" type="button" onClick={logout}>
@@ -224,25 +212,10 @@ export default function App() {
                 gachaLabel={gachaLabel}
                 gachaResult={gachaResult}
                 gLog={gLog}
-                handleGacha={() => handleGacha(tasks, currentUser, setTasks, setGachaLabel, setGachaResult, setGLog, toast, setGachaLock, gachaInterval, gachaTimeout, speedMode, gachaEnabled)}
-                onSkip={() => skipGacha()}
+                handleGacha={() => handleGacha(tasks, currentUser, setTasks, setGachaLabel, setGachaResult, setGLog, toast, setGachaLock, gachaInterval, gachaTimeout)}
                 gachaTaskVal={gachaTaskVal}
                 gachaLock={gachaLock}
-                gachaEnabled={gachaEnabled}
-                speedMode={speedMode}
-                setSpeedMode={setSpeedMode}
-                pullTotal={pullTotal}
-                pullLast={pullLast}
                 priorityLabels={PRIO_LABELS}
-              />
-              <GachaSettingsView
-                isActive={activePage === 'gacha-settings'}
-                gachaEnabled={gachaEnabled}
-                speedMode={speedMode}
-                setSpeedMode={setSpeedMode}
-                toggleGachaEnabled={toggleGachaEnabled}
-                tasks={tasks}
-                toggleTaskPool={toggleTaskPool}
               />
               <ApprovalView
                 isActive={activePage === 'approval'}

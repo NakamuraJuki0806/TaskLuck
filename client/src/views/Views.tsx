@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Priority, TaskStatus, User, Shift, Task, GachaLog, Notification, GachaSpeed } from '../models';
+import { Priority, TaskStatus, User, Shift, Task, GachaLog } from '../models';
 
 type AuthViewProps = {
   selectedRole: 'staff' | 'part';
@@ -107,42 +107,6 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
             </div>
           ))
         }</div></div>
-      </div>
-    </div>
-  );
-}
-
-type NotificationPanelProps = {
-  open: boolean;
-  notifications: Notification[];
-  unreadCount: number;
-  onClose: () => void;
-  onRead: (id: number) => void;
-  onClear: () => void;
-};
-
-export function NotificationPanel({ open, notifications, unreadCount, onClose, onRead, onClear }: NotificationPanelProps) {
-  return (
-    <div className={`notif-panel ${open ? 'open' : ''}`}>
-      <div className="notif-hdr">
-        <span>通知 ({unreadCount})</span>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="notif-clear" type="button" onClick={onClear}>すべて既読</button>
-          <button className="notif-clear" type="button" onClick={onClose}>閉じる</button>
-        </div>
-      </div>
-      <div className="notif-list">
-        {notifications.length === 0 ? (
-          <div className="notif-empty">通知はありません</div>
-        ) : notifications.map((notification) => (
-          <div key={notification.id} className={`notif-item ${notification.read ? 'read' : 'unread'}`} onClick={() => onRead(notification.id)}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-              <div className="notif-title">{notification.title}</div>
-              {!notification.read ? <div className="notif-dot" /> : null}
-            </div>
-            <div className="notif-sub">{notification.sub}</div>
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -334,18 +298,12 @@ type GachaViewProps = {
   gachaResult: Task | null;
   gLog: GachaLog[];
   handleGacha: () => void;
-  onSkip: () => void;
   gachaTaskVal: Task | undefined;
   gachaLock: boolean;
-  gachaEnabled: boolean;
-  speedMode: GachaSpeed;
-  setSpeedMode: (mode: GachaSpeed) => void;
-  pullTotal: number;
-  pullLast: string;
   priorityLabels: Record<Priority, string>;
 };
 
-export function GachaView({ isActive, gachaLabel, gachaResult, gLog, handleGacha, onSkip, gachaTaskVal, gachaLock, gachaEnabled, speedMode, setSpeedMode, pullTotal, pullLast, priorityLabels }: GachaViewProps) {
+export function GachaView({ isActive, gachaLabel, gachaResult, gLog, handleGacha, gachaTaskVal, gachaLock, priorityLabels }: GachaViewProps) {
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-gacha">
       <div className="ph"><div><div className="pt">闇鍋ガチャ</div><div className="ps">ランダムにタスクが割り当てられます</div></div></div>
@@ -404,21 +362,11 @@ export function GachaView({ isActive, gachaLabel, gachaResult, gLog, handleGacha
               <button className="btn btn-sm btn-dark" type="button" onClick={onSkip}>スキップ ▶▶</button>
             </div>
           </div>
-        ) : null}
+        </div>
       </div>
     </div>
   );
 }
-
-type GachaSettingsViewProps = {
-  isActive: boolean;
-  gachaEnabled: boolean;
-  speedMode: GachaSpeed;
-  setSpeedMode: (mode: GachaSpeed) => void;
-  toggleGachaEnabled: () => void;
-  tasks: Task[];
-  toggleTaskPool: (taskId: number) => void;
-};
 
 type ApprovalViewProps = {
   isActive: boolean;
@@ -427,52 +375,6 @@ type ApprovalViewProps = {
   priorityBadge: (p: Priority) => ReactNode;
   handleApproval: (id: number, approved: boolean) => void;
 };
-
-export function GachaSettingsView({ isActive, gachaEnabled, speedMode, setSpeedMode, toggleGachaEnabled, tasks, toggleTaskPool }: GachaSettingsViewProps) {
-  return (
-    <div className={`page ${isActive ? 'show' : ''}`} id="pg-gacha-settings">
-      <div className="ph">
-        <div><div className="pt">ガチャ設定</div><div className="ps">タスクプールと速度モードを管理します</div></div>
-      </div>
-      <div className="card">
-        <div className="sec-lbl">ガチャ状態</div>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <button className={`btn ${gachaEnabled ? 'btn-dark' : ''}`} type="button" onClick={toggleGachaEnabled}>
-            {gachaEnabled ? '有効' : '無効'}
-          </button>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <span>速度モード</span>
-            {(['normal','fast','skip'] as const).map((mode) => (
-              <button key={mode} className={`btn btn-sm ${speedMode === mode ? 'active' : ''}`} type="button" onClick={() => setSpeedMode(mode)}>
-                {mode === 'normal' ? '通常' : mode === 'fast' ? '高速' : '即時'}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="card">
-        <div className="sec-lbl">タスクプール</div>
-        {tasks.length === 0 ? (
-          <div style={{ padding: '1rem', color: '#aaa' }}>タスクがありません</div>
-        ) : (
-          <div style={{ display: 'grid', gap: '10px' }}>
-            {tasks.map((task) => (
-              <div key={task.id} className="ti" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: 500 }}>{task.name}</div>
-                  <div style={{ fontSize: '12px', color: '#666' }}>プール: {task.inPool ? '有効' : '無効'}</div>
-                </div>
-                <button className="btn btn-sm" type="button" onClick={() => toggleTaskPool(task.id)}>
-                  {task.inPool ? '除外' : '追加'}
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 export function ApprovalView({ isActive, approvalTasks, users, priorityBadge, handleApproval }: ApprovalViewProps) {
   return (

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Role, Priority, TaskStatus, User, Shift, Task, GachaLog, Notification, GachaSpeed, USERS_INITIAL, SHIFTS_INITIAL, TASKS_INITIAL, NOTIFICATIONS_INITIAL } from '../models';
+import { Role, Priority, TaskStatus, User, Shift, Task, GachaLog, USERS_INITIAL, SHIFTS_INITIAL, TASKS_INITIAL } from '../models';
 
 export default function useAppController() {
   const [selectedRole, setSelectedRole] = useState<'staff' | 'part'>('staff');
@@ -12,16 +12,12 @@ export default function useAppController() {
   const [cy, setCy] = useState(2025);
   const [cm, setCm] = useState(5);
   const [tFilter, setTFilter] = useState<TaskStatus | 'all'>('all');
-  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'task' | 'gacha' | 'gacha-settings' | 'approval' | 'staff'>('dashboard');
+  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'task' | 'gacha' | 'approval' | 'staff'>('dashboard');
   const [modal, setModal] = useState<string | null>(null);
   const [toastText, setToastText] = useState('');
   const [gachaLabel, setGachaLabel] = useState('タスクを引いてみよう…');
   const [gachaResult, setGachaResult] = useState<Task | null>(null);
   const [gachaLock, setGachaLock] = useState(false);
-  const [gachaEnabled, setGachaEnabled] = useState(true);
-  const [speedMode, setSpeedMode] = useState<GachaSpeed>('normal');
-  const [notificationOpen, setNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(NOTIFICATIONS_INITIAL);
   const [reqDate, setReqDate] = useState(new Date().toISOString().slice(0,10));
   const [reqStart, setReqStart] = useState('09:00');
   const [reqEnd, setReqEnd] = useState('17:00');
@@ -273,25 +269,16 @@ export default function useAppController() {
     finalizeGachaDraw(chosen, currentUser, rk.toLowerCase(), rc.label, setTasks, setGachaLabel, setGachaResult, setGLog, toast, setGachaLock);
   };
 
-  const handleGacha = (tasksParam:Task[], currentUserParam:User | null, setTasksFn:(fn:any)=>void, setGachaLabelFn:(s:string)=>void, setGachaResultFn:(t:Task|null)=>void, setGLogFn:(fn:any)=>void, toastFn:(m:string)=>void, setGachaLockFn:(b:boolean)=>void, gachaIntervalRef:any, gachaTimeoutRef:any, speedModeParam:GachaSpeed, gachaEnabledParam:boolean) => {
-    if (!gachaEnabledParam) { toastFn('ガチャが無効です'); return; }
-    const avail = tasksParam.filter((task) => task.st === 'pending' && !task.to && task.inPool);
-    if (!avail.length) { toastFn('引けるタスクがありません'); return; }
+  const handleGacha = (tasksParam:Task[], currentUserParam:User | null, setTasksFn:(fn:any)=>void, setGachaLabelFn:(s:string)=>void, setGachaResultFn:(t:Task|null)=>void, setGLogFn:(fn:any)=>void, toastFn:(m:string)=>void, setGachaLockFn:(b:boolean)=>void, gachaIntervalRef:any, gachaTimeoutRef:any) => {
+    const avail = tasksParam.filter((task)=>task.st==='pending'&& !task.to);
+    if (!avail.length){ toastFn('引けるタスクがありません'); return; }
     if (!currentUserParam) return;
     setGachaLockFn(true);
     setGachaResultFn(null);
-
-    const speedConfig = {
-      normal: { interval: 90, timeout: 2200 },
-      fast: { interval: 40, timeout: 1200 },
-      skip: { interval: 0, timeout: 0 },
-    } as const;
-
-    const { interval, timeout } = speedConfig[speedModeParam];
-    const pool = [...avail.map((task) => task.name), '？？？', 'ランダム選出中…', '🎲 運命のタスク'];
-    let pointer = 0;
-
+    const pool = [...avail.map((task)=>task.name),'？？？','ランダム選出中…','🎲 運命のタスク'];
+    let pointer=0;
     if (gachaIntervalRef.current) window.clearInterval(gachaIntervalRef.current);
+    gachaIntervalRef.current = window.setInterval(()=>{ setGachaLabelFn(pool[pointer%pool.length]); pointer+=1; },90);
     if (gachaTimeoutRef.current) window.clearTimeout(gachaTimeoutRef.current);
 
     const rk = pickRarity();
