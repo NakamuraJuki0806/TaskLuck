@@ -51,7 +51,8 @@ export default function App() {
     users, setUsers, shifts, setShifts, tasks, setTasks, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, setToastText, gachaLabel, setGachaLabel, gachaResult, setGachaResult, gachaLock, setGachaLock,
-    reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqNote, setReqNote,
+    gachaEnabled, speedMode, setSpeedMode, toggleGachaEnabled, toggleTaskPool, notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs,
+    reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
     asName, setAsName, asRole, setAsRole, assignTaskId, setAssignTaskId, assignUid, setAssignUid,
@@ -59,8 +60,8 @@ export default function App() {
     availableUsers, activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
     handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
-    handleGacha, handleApproval, handleStaffCreate, approvalTasks, staffStats,
-    gachaInterval, gachaTimeout,
+    handleGacha, skipGacha, handleApproval, handleStaffCreate, approvalTasks, staffStats,
+    toastTimer, gachaInterval, gachaTimeout,
   } = controller;
 
   const dsObj = dashboardStats(shifts, tasks, currentUser, isMgr, approvalCount);
@@ -68,9 +69,11 @@ export default function App() {
   const dashTasks = dashboardTasks(tasks, currentUser, isMgr);
   const cal = renderCalendar(cy, cm, shifts, users, currentUser);
   const currentMonthLabel = cal?.monthNames[cm] ?? '';
-  const shiftRows = shiftTableRows(shifts, users, isMgr, toast, setShifts);
+  const shiftRows = shiftTableRows(shifts, users, currentUser, isMgr);
   const tasksForView = taskList(tasks, currentUser, isMgr, isStf ?? false, tFilter);
   const gachaTaskVal = gachaTask(tasks, currentUser);
+  const pullTotal = gLog.length;
+  const pullLast = gLog.length ? gLog[gLog.length - 1].rarity ?? gLog[gLog.length - 1].name : '—';
   const staffStatsObj = staffStats(users);
 
   const renderTaskActions = (task: Task) => {
@@ -232,12 +235,27 @@ export default function App() {
         </div>
       )}
 
+      {currentUser ? (
+        <NotificationPanel
+          open={notificationOpen}
+          notifications={currentUser.role === 'manager' ? notifications : notifications.filter((item) => item.uid === currentUser.id)}
+          unreadCount={unreadCount}
+          onClose={toggleNotif}
+          onRead={readNotif}
+          onClear={clearNotifs}
+        />
+      ) : null}
+
       <div className={`overlay ${modal === 'modal-shift-req' ? 'open' : ''}`} id="modal-shift-req" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
         <div className="modal">
           <h3>シフト希望を提出</h3>
           <div className="mfg"><label>日付</label><input type="date" value={reqDate} onChange={(event) => setReqDate(event.target.value)} /></div>
           <div className="mfg"><label>開始時間</label><input type="time" value={reqStart} onChange={(event) => setReqStart(event.target.value)} /></div>
           <div className="mfg"><label>終了時間</label><input type="time" value={reqEnd} onChange={(event) => setReqEnd(event.target.value)} /></div>
+          <div className="mfg"><label>希望休（出勤不可）</label><select value={reqOff ? 'yes' : 'no'} onChange={(event) => setReqOff(event.target.value === 'yes')}>
+            <option value="no">いいえ</option>
+            <option value="yes">はい（この日は出勤不可）</option>
+          </select></div>
           <div className="mfg"><label>備考</label><input type="text" value={reqNote} onChange={(event) => setReqNote(event.target.value)} placeholder="任意" /></div>
           <div className="mf">
             <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>

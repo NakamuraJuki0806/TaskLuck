@@ -18,6 +18,7 @@ export interface Shift {
   s: string;
   e: string;
   st: ShiftStatus;
+  isOff?: boolean;
 }
 
 export interface Task {
@@ -34,6 +35,18 @@ export interface Task {
 export interface GachaLog {
   name: string;
   xp: number;
+  timestamp?: number;
+  rarity?: string;
+  rkey?: string;
+  time?: string;
+}
+
+export interface Notification {
+  id: number;
+  title: string;
+  sub: string;
+  read: boolean;
+  uid: number;
 }
 
 export const USERS_INITIAL: User[] = [
