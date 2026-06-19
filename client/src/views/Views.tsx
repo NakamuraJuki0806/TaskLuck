@@ -22,6 +22,7 @@ export function AuthView({ selectedRole, onSelectRole, loginUserId, setLoginUser
             type="text"
             value={loginUserId}
             onChange={(event) => setLoginUserId(event.target.value ? Number(event.target.value) : '')}
+            onKeyDown={(event) => event.key === 'Enter' && handleLogin()}
             placeholder="ユーザーIDを入力 (例: 1)"
           />
         </div>
