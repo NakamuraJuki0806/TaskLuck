@@ -32,10 +32,6 @@ app.get('/api', (_req, res) => {
   res.json({ message: 'TaskLuck API is running' });
 });
 
-app.get('/api/tasks', (_req, res) => {
-  res.json([]);
-});
-
 const startServer = async () => {
   try {
     await connectDatabase();
