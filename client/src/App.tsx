@@ -131,8 +131,7 @@ export default function App() {
             <div className="sidebar">
               <div className="sb-top">
                 <div className="sb-logo">
-                  <div className="sb-logo-icon">T</div>
-                  <div className="sb-logo-name">TaskLuck</div>
+                  <img src="/favicon.png" alt="TaskLuck" />
                 </div>
                 <div className="sb-user">
                   <div className="sb-avatar" id="sb-av">{currentUser.ini}</div>
