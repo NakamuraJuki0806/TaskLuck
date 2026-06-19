@@ -21,6 +21,15 @@ export interface Shift {
   isOff?: boolean;
 }
 
+export interface ShiftPattern {
+  id: number;
+  title: string;
+  workStart: string;
+  workEnd: string;
+  breakTime: number;
+  memo: string;
+}
+
 export interface Task {
   id: number;
   name: string;
@@ -75,4 +84,9 @@ export const TASKS_INITIAL: Task[] = [
   { id: 4, name: 'バックヤード片付け', desc: '段ボールをまとめて廃棄場所へ', pri: 'mid', xp: 60, st: 'pending', to: null, by: 1 },
   { id: 5, name: 'レジ補充', desc: 'つり銭用コインの補充', pri: 'high', xp: 70, st: 'done', to: 5, by: 2 },
   { id: 6, name: '窓ふき', desc: '店舗入口の窓を清掃', pri: 'low', xp: 40, st: 'pending', to: null, by: 1 },
+];
+
+export const SHIFT_PATTERNS_INITIAL: ShiftPattern[] = [
+  { id: 1, title: 'パターンA', workStart: '17:00', workEnd: '21:00', breakTime: 0, memo: '平日用' },
+  { id: 2, title: 'パターンB', workStart: '13:00', workEnd: '21:00', breakTime: 60, memo: '休日用' },
 ];

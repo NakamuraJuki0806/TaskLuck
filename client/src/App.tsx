@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
-import { Role, Priority, TaskStatus, User, Shift, Task, Notification } from './models';
+import { Role, Priority, TaskStatus, User, Shift, ShiftPattern, Task, Notification } from './models';
 import useAppController from './controllers/useAppController';
 import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, StaffView, NotificationPanel } from './views/Views';
+import ShiftRequestScreen from './views/ShiftRequestScreen';
 import GachaSettings from './views/GachaSettings';
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -55,7 +56,7 @@ export default function App() {
   const controller = useAppController();
   const {
     selectedRole, setSelectedRole, loginUserId, setLoginUserId, currentUser, setCurrentUser,
-    users, setUsers, shifts, setShifts, tasks, setTasks, gLog, setGLog,
+    users, setUsers, shifts, setShifts, shiftPatterns, setShiftPatterns, tasks, setTasks, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, setToastText, gachaLabel, setGachaLabel, gachaResult, setGachaResult, gachaLock, setGachaLock,
     gachaEnabled, speedMode, setSpeedMode, toggleGachaEnabled, toggleTaskPool, notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs,
@@ -182,7 +183,7 @@ export default function App() {
               <ShiftView
                 isActive={activePage === 'shift'}
                 isMgr={isMgr}
-                onOpenShiftRequest={() => setModal('modal-shift-req')}
+                onOpenShiftRequest={() => handleNav('shift-request')}
                 onOpenShiftCreate={() => { setModal('modal-cs'); setCsDate(todayIso); }}
                 cal={cal}
                 currentMonthLabel={currentMonthLabel}
@@ -201,6 +202,31 @@ export default function App() {
                 setCsEnd={setCsEnd}
                 onShiftRequestSubmit={() => handleShiftRequestSubmit(currentUser, reqDate, reqStart, reqEnd, setShifts, setModal, toast)}
                 onShiftCreateSubmit={() => handleShiftCreateSubmit(csUid, csDate, csStart, csEnd, setShifts, setModal, toast)}
+              />
+
+              <ShiftRequestScreen
+                isActive={activePage === 'shift-request'}
+                currentUser={currentUser}
+                cal={cal}
+                currentMonthLabel={currentMonthLabel}
+                setCm={setCm}
+                users={users}
+                shiftPatterns={shiftPatterns}
+                setShiftPatterns={setShiftPatterns}
+                reqDate={reqDate}
+                setReqDate={setReqDate}
+                reqOff={reqOff}
+                setReqOff={setReqOff}
+                reqNote={reqNote}
+                setReqNote={setReqNote}
+                onSubmit={(patternId) => {
+                  const pattern = shiftPatterns.find((p) => p.id === patternId);
+                  if (pattern) {
+                    handleShiftRequestSubmit(currentUser, reqDate, pattern.workStart, pattern.workEnd, setShifts, setModal, toast);
+                  }
+                  handleNav('shift');
+                }}
+                onCancel={() => handleNav('shift')}
               />
 
               <TaskView
@@ -267,23 +293,7 @@ export default function App() {
         />
       ) : null}
 
-      <div className={`overlay ${modal === 'modal-shift-req' ? 'open' : ''}`} id="modal-shift-req" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
-        <div className="modal">
-          <h3>シフト希望を提出</h3>
-          <div className="mfg"><label>日付</label><input type="date" value={reqDate} onChange={(event) => setReqDate(event.target.value)} /></div>
-          <div className="mfg"><label>開始時間</label><input type="time" value={reqStart} onChange={(event) => setReqStart(event.target.value)} /></div>
-          <div className="mfg"><label>終了時間</label><input type="time" value={reqEnd} onChange={(event) => setReqEnd(event.target.value)} /></div>
-          <div className="mfg"><label>希望休（出勤不可）</label><select value={reqOff ? 'yes' : 'no'} onChange={(event) => setReqOff(event.target.value === 'yes')}>
-            <option value="no">いいえ</option>
-            <option value="yes">はい（この日は出勤不可）</option>
-          </select></div>
-          <div className="mfg"><label>備考</label><input type="text" value={reqNote} onChange={(event) => setReqNote(event.target.value)} placeholder="任意" /></div>
-          <div className="mf">
-            <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
-            <button className="btn btn-dark" type="button" onClick={() => handleShiftRequestSubmit(currentUser, reqDate, reqStart, reqEnd, setShifts, setModal, toast)}>提出</button>
-          </div>
-        </div>
-      </div>
+
 
       <div className={`overlay ${modal === 'modal-cs' ? 'open' : ''}`} id="modal-cs" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
         <div className="modal">

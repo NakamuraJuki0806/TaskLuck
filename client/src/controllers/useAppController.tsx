@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Role, Priority, TaskStatus, User, Shift, Task, GachaLog, Notification, USERS_INITIAL, SHIFTS_INITIAL, TASKS_INITIAL } from '../models';
+import { Role, Priority, TaskStatus, User, Shift, ShiftPattern, Task, GachaLog, Notification, USERS_INITIAL, SHIFTS_INITIAL, SHIFT_PATTERNS_INITIAL, TASKS_INITIAL } from '../models';
 
 export default function useAppController() {
   const [selectedRole, setSelectedRole] = useState<'staff' | 'part'>('staff');
@@ -7,6 +7,7 @@ export default function useAppController() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(USERS_INITIAL);
   const [shifts, setShifts] = useState<Shift[]>(SHIFTS_INITIAL);
+  const [shiftPatterns, setShiftPatterns] = useState<ShiftPattern[]>(SHIFT_PATTERNS_INITIAL);
   const [tasks, setTasks] = useState<Task[]>(TASKS_INITIAL);
   const [gLog, setGLog] = useState<GachaLog[]>([]);
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -16,7 +17,7 @@ export default function useAppController() {
   const [cy, setCy] = useState(2025);
   const [cm, setCm] = useState(5);
   const [tFilter, setTFilter] = useState<TaskStatus | 'all'>('all');
-  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'task' | 'gacha' | 'approval' | 'gacha-settings' | 'staff' | 'notifications'>('dashboard');
+  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'shift-request' | 'task' | 'gacha' | 'approval' | 'gacha-settings' | 'staff' | 'notifications'>('dashboard');
   const [modal, setModal] = useState<string | null>(null);
   const [toastText, setToastText] = useState('');
   const [gachaLabel, setGachaLabel] = useState('タスクを引いてみよう…');
@@ -354,7 +355,7 @@ export default function useAppController() {
 
   return {
     selectedRole, setSelectedRole, loginUserId, setLoginUserId, currentUser, setCurrentUser,
-    users, setUsers, shifts, setShifts, tasks, setTasks, gLog, setGLog,
+    users, setUsers, shifts, setShifts, shiftPatterns, setShiftPatterns, tasks, setTasks, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, setToastText, gachaLabel, setGachaLabel, gachaResult, setGachaResult, gachaLock, setGachaLock,
     gachaEnabled, setGachaEnabled, speedMode, setSpeedMode, notificationOpen, setNotificationOpen, notifications, setNotifications, unreadCount, toggleNotif, readNotif, clearNotifs, toggleGachaEnabled, toggleTaskPool,

@@ -104,8 +104,10 @@ main{flex:1;min-width:0;overflow-y:auto}
 .cal-dn{text-align:center;font-size:11px;color:#aaa;padding:4px;font-weight:500}
 .cal-cell{border-radius:6px;padding:5px 4px;min-height:52px;background:#fafafa;position:relative}
 .cal-cell.today{background:#f0f0f0}
+.cal-cell.selected{background:#3b82f6;border:2px solid #1e40af}
 .cal-cell.other .cal-n{color:#ccc}
 .cal-n{font-size:11px;color:#aaa;margin-bottom:2px}
+.cal-cell.selected .cal-n{color:#fff}
 .cal-ev{font-size:10px;border-radius:3px;padding:1px 4px;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cal-ev-me{background:#1a1a1a;color:#fff}
 .cal-ev-other{background:#f0f0f0;color:#555}
