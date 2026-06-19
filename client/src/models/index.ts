@@ -30,6 +30,7 @@ export interface Task {
   st: TaskStatus;
   to: number | null;
   by: number;
+  inPool?: boolean;
 }
 
 export interface GachaLog {
