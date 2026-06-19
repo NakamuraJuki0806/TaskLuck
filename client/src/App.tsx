@@ -74,7 +74,7 @@ export default function App() {
   const dsObj = dashboardStats(shifts, tasks, currentUser, isMgr, approvalCount);
   const todayShifts = renderTodayShifts(shifts, users, currentUser);
   const dashTasks = dashboardTasks(tasks, currentUser, isMgr);
-  const cal = renderCalendar(cy, cm, shifts, users, currentUser);
+  const cal = renderCalendar(cy, cm, shifts, currentUser);
   const currentMonthLabel = cal?.monthNames[cm] ?? '';
   const shiftRows = shiftTableRows(shifts, users, currentUser, isMgr);
   const tasksForView = taskList(tasks, currentUser, isMgr, isStf ?? false, tFilter);

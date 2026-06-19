@@ -165,7 +165,7 @@ export default function useAppController() {
     return showT;
   };
 
-  const renderCalendar = (cyState: number, cmState: number, shiftsParam: Shift[], usersParam: User[], currentUserParam: User | null) => {
+  const renderCalendar = (cyState: number, cmState: number, shiftsParam: Shift[], currentUserParam: User | null) => {
     const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
     const firstDay = new Date(cyState, cmState, 1).getDay();
     const daysInMonth = new Date(cyState, cmState + 1, 0).getDate();
