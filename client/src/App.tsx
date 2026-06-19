@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import './App.css';
 import { Role, Priority, TaskStatus, User, Shift, Task, Notification } from './models';
 import useAppController from './controllers/useAppController';
-import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, StaffView, NotificationPanel } from './views/Views';
+import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, BusinessInfoView, StaffView, NotificationPanel } from './views/Views';
 import GachaSettings from './views/GachaSettings';
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -55,7 +55,7 @@ export default function App() {
   const controller = useAppController();
   const {
     selectedRole, setSelectedRole, loginUserId, setLoginUserId, currentUser, setCurrentUser,
-    users, setUsers, shifts, setShifts, tasks, setTasks, gLog, setGLog,
+    users, setUsers, shifts, setShifts, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, setToastText, gachaLabel, setGachaLabel, gachaLock, setGachaLock,
     gachaEnabled, toggleGachaEnabled, toggleTaskPool, notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs,
@@ -240,6 +240,13 @@ export default function App() {
                 users={users}
                 priorityBadge={priorityBadge}
                 handleApproval={(id, approved) => handleApproval(id, approved, setTasks, tasks, setUsers, toast)}
+              />
+              <BusinessInfoView
+                isActive={activePage === 'business-info'}
+                businessInfo={businessInfo}
+                updateBusinessInfo={updateBusinessInfo}
+                resetBusinessInfo={resetBusinessInfo}
+                toast={toast}
               />
               <StaffView
                 isActive={activePage === 'staff'}
