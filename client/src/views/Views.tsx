@@ -315,62 +315,103 @@ export function GachaView({ isActive, gachaLabel, gachaResult, gLog, handleGacha
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-gacha">
       <div className="ph"><div><div className="pt">闇鍋ガチャ</div><div className="ps">ランダムにタスクが割り当てられます</div></div></div>
-      <div className="card" id="gacha-card" style={{ overflow: 'hidden', position: 'relative' }}>
-        <div className="gacha-idle" id="gacha-idle">
-          <div className="gp-pot" id="gp-pot">🍲</div>
-          <div className="gp-title">闇鍋ガチャ</div>
-          <div className="gp-sub">鍋の中身は誰も知らない。<br />レアリティが高ければ高いほど試練が待っている。</div>
-          <div className="pull-count-badge"><div className="pull-dot" /><span>通算 <b>{pullTotal}</b> 回 ／ 前回: <b>{pullLast}</b></span></div>
-          <button className="gp-btn" id="gp-btn" type="button" onClick={handleGacha} disabled={Boolean(gachaTaskVal) || gachaLock || !gachaEnabled}>
-            <span className="gpb-icon">🎲</span>
-            <span className="gpb-main">ガチャを引く</span>
-            <span className="gpb-sub">タップで闇鍋オープン</span>
-          </button>
-          <div className="gacha-speed-row">
-            <span style={{ fontSize: '11px', color: '#bbb' }}>演出速度:</span>
-            <button className={`sp-btn ${speedMode === 'normal' ? 'on' : ''}`} type="button" onClick={() => setSpeedMode ? setSpeedMode('normal') : undefined}>通常</button>
-            <button className={`sp-btn ${speedMode === 'fast' ? 'on' : ''}`} type="button" onClick={() => setSpeedMode ? setSpeedMode('fast') : undefined}>速い</button>
-            <button className={`sp-btn ${speedMode === 'skip' ? 'on' : ''}`} type="button" onClick={() => setSpeedMode ? setSpeedMode('skip') : undefined}>スキップ</button>
-          </div>
+      <div className="w-full max-w-2xl mx-auto px-4 py-6 space-y-4">
+        {/* ガチャ待機画面 */}
+        <div className="bg-white rounded-lg p-8 text-center border border-gray-200">
           {gachaTaskVal ? (
-            <div className="assigned-info" id="g-assigned">
-              <div className="ai-lbl">現在のタスク</div>
-              <div className="ai-name" id="g-aname">{gachaTaskVal.name}</div>
-              <div className="ai-meta" id="g-ameta">優先度 {priorityLabels[gachaTaskVal.pri]} / +{gachaTaskVal.xp} XP</div>
-            </div>
-          ) : null}
-          {!gachaEnabled ? (
-            <div className="gacha-disabled-msg" id="gacha-disabled">ガチャは現在無効です<br />社員がガチャ設定から有効化するまでお待ちください</div>
-          ) : null}
-        </div>
-        <div className="gacha-hist" id="gacha-hist">
-          {gLog.length > 0 ? (
-            <>
-              <div className="gh-hdr">
-                <span className="gh-title">ガチャ履歴</span>
+            // 対応中のタスク表示
+            <div>
+              <div className="mb-6">
+                <div className="inline-block bg-purple-50 border border-purple-200 rounded-full px-4 py-2 mb-4">
+                  <span className="text-sm text-purple-600">
+                    <span className="inline-block w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse"></span>
+                    対応中
+                  </span>
+                </div>
               </div>
+              <h2 className="text-2xl font-bold mb-3">{gachaTaskVal.name}</h2>
+              <p className="text-gray-600 text-sm mb-6">{gachaTaskVal.desc}</p>
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <div className="text-xs text-gray-500 mb-1">予定XP</div>
+                <div className="text-3xl font-bold text-purple-600">+{gachaTaskVal.xp || 0} XP</div>
+              </div>
+              <button
+                onClick={handleGacha}
+                className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={gachaLock}
+              >
+                タスク完了
+              </button>
+            </div>
+          ) : (
+            // ガチャ待機画面
+            <div>
+              <div className="text-6xl mb-4 animate-bounce">🍲</div>
+              <h2 className="text-2xl font-bold mb-2">闇鍋ガチャ</h2>
+              <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                タスクから何が飛び出すかは運次第...
+                <br />
+                ガチャを回してタスクを引き当てよう！
+              </p>
+              <div className="bg-purple-50 border border-purple-200 rounded-full px-4 py-2 inline-flex items-center gap-2 mb-6">
+                <span className="inline-block w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
+                <span className="text-sm text-gray-600">
+                  総回数: <span className="font-bold text-purple-600">{pullTotal}</span>
+                </span>
+              </div>
+              <div className="mb-6">
+                <div className="text-xs text-gray-500 mb-2">最後の結果</div>
+                <div className="text-lg font-bold text-purple-600">{pullLast}</div>
+              </div>
+              {/* スピードモード選択 */}
+              <div className="flex gap-2 justify-center mb-8">
+                {(['normal', 'fast', 'skip'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setSpeedMode?.(mode)}
+                    className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                      speedMode === mode
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
+                  >
+                    {mode === 'normal' && '標準'}
+                    {mode === 'fast' && '高速'}
+                    {mode === 'skip' && 'スキップ'}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={handleGacha}
+                disabled={gachaLock || !gachaEnabled}
+                className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-12 py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {gachaLock ? '処理中...' : 'ガチャを回す'}
+              </button>
+            </div>
+          )}
+        </div>
+        {/* ガチャ履歴 */}
+        {gLog.length > 0 && (
+          <div className="bg-white rounded-lg border border-gray-200">
+            <div className="p-4 border-b border-gray-200">
+              <h3 className="font-semibold text-gray-900">ガチャ履歴</h3>
+              <p className="text-xs text-gray-500 mt-1">{gLog.length}件</p>
+            </div>
+            <div className="divide-y divide-gray-200">
               {gLog.slice().reverse().slice(0, 8).map((entry, index) => (
-                <div className="gh-item" key={`${entry.name}-${index}`}>
-                  <div className="gh-bar" />
-                  <div className="gh-info">
-                    <div className="gh-name">{entry.name}</div>
-                    <div className="gh-meta">{entry.rarity ?? 'NORMAL'} · {entry.time ?? ''}</div>
+                <div key={`${entry.name}-${index}`} className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors">
+                  <div className="w-1 h-12 bg-purple-100 rounded-full flex-shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900">{entry.name}</div>
+                    <p className="text-xs text-gray-500">{entry.rarity ?? 'NORMAL'} · {entry.time ?? ''}</p>
                   </div>
-                  <span className="gh-xp">+{entry.xp} XP</span>
+                  <div className="text-lg font-bold text-purple-600">+{entry.xp} XP</div>
                 </div>
               ))}
-            </>
-          ) : null}
-        </div>
-        {gachaLock ? (
-          <div className="gacha-overlay" id="gacha-ov" onClick={(event) => { if (event.target === event.currentTarget) onSkip?.(); }}>
-            <div className="gacha-overlay-card">
-              <div className="gacha-overlay-title">選出中…</div>
-              <div className="gacha-overlay-label">{gachaLabel}</div>
-              <button className="btn btn-sm btn-dark" type="button" onClick={() => onSkip?.()}>スキップ ▶▶</button>
             </div>
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );

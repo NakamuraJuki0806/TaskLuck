@@ -3,6 +3,7 @@ import './App.css';
 import { Role, Priority, TaskStatus, User, Shift, Task, Notification } from './models';
 import useAppController from './controllers/useAppController';
 import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, StaffView, NotificationPanel } from './views/Views';
+import GachaSettings from './views/GachaSettings';
 
 const ROLE_LABELS: Record<Role, string> = {
   manager: '店長',
@@ -38,6 +39,9 @@ const ICONS: Record<string, React.JSX.Element> = {
   ),
   shield: (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  ),
+  settings: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.98 2.98l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m2.98-2.98l4.24-4.24M19.78 19.78l-4.24-4.24m-2.98-2.98l-4.24-4.24"/></svg>
   ),
   bell: (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 1 0-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -221,6 +225,19 @@ export default function App() {
                 gachaLock={gachaLock}
                 priorityLabels={PRIO_LABELS}
               />
+              {activePage === 'gacha-settings' && (
+                <div className="page show" id="pg-gacha-settings">
+                  <div className="ph"><div><div className="pt">ガチャ設定</div></div></div>
+                  <GachaSettings
+                    tasks={tasks}
+                    gachaEnabled={gachaEnabled}
+                    speedMode={speedMode}
+                    onToggleEnabled={toggleGachaEnabled}
+                    onSpeedModeChange={setSpeedMode}
+                    onTogglePool={toggleTaskPool}
+                  />
+                </div>
+              )}
               <ApprovalView
                 isActive={activePage === 'approval'}
                 approvalTasks={approvalTasks}
