@@ -14,10 +14,7 @@ export function AuthView({ selectedRole, onSelectRole, loginUserId, setLoginUser
   return (
     <div id="login-screen">
       <div className="lbox">
-        <div className="llogo">
-          <div className="llogo-ic">🍲</div>
-          <div className="llogo-nm">TaskLuck</div>
-        </div>
+        <img src="/favicon.png" alt="TaskLuck" className="llogo" />
         <h2>ユーザーIDを入力してログイン</h2>
         <div className="fg">
           <label>ユーザーID</label>
