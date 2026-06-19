@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Priority, TaskStatus, User, Shift, Task, GachaLog } from '../models';
+import { Priority, TaskStatus, User, Shift, Task, GachaLog, Notification } from '../models';
 
 type AuthViewProps = {
   selectedRole: 'staff' | 'part';
@@ -13,35 +13,27 @@ type AuthViewProps = {
 export function AuthView({ selectedRole, onSelectRole, loginUserId, setLoginUserId, userOptions, handleLogin }: AuthViewProps) {
   return (
     <div id="login-screen">
-      <div className="login-box">
-        <div className="login-logo">
-          <div className="login-logo-icon">T</div>
-          <div className="login-logo-name">TaskLuck</div>
+      <div className="lbox">
+        <div className="llogo">
+          <div className="llogo-ic">🍲</div>
+          <div className="llogo-nm">TaskLuck</div>
         </div>
-        <h2>アカウントを選択してログイン</h2>
-        <div className="role-tabs">
-          <button type="button" className={`role-tab ${selectedRole === 'staff' ? 'active' : ''}`} onClick={() => { onSelectRole('staff'); setLoginUserId(''); }}>
-            社員
-          </button>
-          <button type="button" className={`role-tab ${selectedRole === 'part' ? 'active' : ''}`} onClick={() => { onSelectRole('part'); setLoginUserId(''); }}>
-            アルバイト
-          </button>
-        </div>
+        <h2>ユーザーIDを入力してログイン</h2>
         <div className="fg">
-          <label>アカウント</label>
-          <select value={loginUserId} onChange={(event) => setLoginUserId(event.target.value ? Number(event.target.value) : '')}>
-            <option value="">選択してください</option>
-            {userOptions.map((user) => (
-              <option key={user.id} value={user.id}>{user.name}</option>
-            ))}
-          </select>
+          <label>ユーザーID</label>
+          <input
+            type="text"
+            value={loginUserId}
+            onChange={(event) => setLoginUserId(event.target.value ? Number(event.target.value) : '')}
+            placeholder="ユーザーIDを入力 (例: 1)"
+          />
         </div>
         <div className="fg">
           <label>パスワード</label>
           <input type="password" value="demo" readOnly placeholder="demo" />
         </div>
         <button className="btn-login" type="button" onClick={handleLogin}>ログイン</button>
-        <p className="hint">デモ用：パスワードは「demo」で固定</p>
+        <p className="lhint">デモ用：パスワードは「demo」で固定</p>
       </div>
     </div>
   );
@@ -157,8 +149,8 @@ export function ShiftView({ isActive, isMgr, onOpenShiftRequest, onOpenShiftCrea
         </div>
       </div>
       <div className="card" style={{ marginBottom: '12px' }}>
-        {cal ? (
-          <>
+            {cal ? (
+              <>
             <div className="cal-nav">
               <button className="btn btn-sm" type="button" onClick={() => setCm((prev) => prev - 1 < 0 ? 11 : prev - 1)}>‹‹</button>
               <span className="cal-month">{currentMonthLabel}</span>
@@ -309,40 +301,117 @@ type GachaViewProps = {
   gachaTaskVal: Task | undefined;
   gachaLock: boolean;
   priorityLabels: Record<Priority, string>;
+  gachaEnabled?: boolean;
+  speedMode?: 'normal' | 'fast' | 'skip';
+  setSpeedMode?: (mode: 'normal' | 'fast' | 'skip') => void;
+  onSkip?: () => void;
 };
 
-export function GachaView({ isActive, gachaLabel, gachaResult, gLog, handleGacha, gachaTaskVal, gachaLock, priorityLabels }: GachaViewProps) {
+export function GachaView({ isActive, gachaLabel, gachaResult, gLog, handleGacha, gachaTaskVal, gachaLock, priorityLabels, gachaEnabled = true, speedMode = 'normal', setSpeedMode, onSkip }: GachaViewProps) {
+  // pull totals derived from gLog
+  const pullTotal = gLog.length;
+  const pullLast = gLog.length ? gLog[gLog.length - 1].rarity ?? gLog[gLog.length - 1].name : '—';
+
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-gacha">
       <div className="ph"><div><div className="pt">闇鍋ガチャ</div><div className="ps">ランダムにタスクが割り当てられます</div></div></div>
-      <div className="card">
-        <div className="gacha-wrap">
-          <div className="drum"><div className="drum-txt" id="drum">{gachaLabel}</div></div>
-          <button className="gacha-btn" id="gbtn" type="button" onClick={handleGacha} disabled={Boolean(gachaTaskVal) || gachaLock}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 12l4-4"/><path d="M16 4h4v4"/></svg>
-            ガチャを引く
-          </button>
-          {gachaResult ? (
-            <div className="gacha-res" id="gres" style={{ display: 'block' }}>
-              <div className="gacha-res-lbl">割り当てられたタスク</div>
-              <div className="gacha-res-name" id="gr-name">{gachaResult.name}</div>
-              <div className="gacha-res-meta" id="gr-meta">優先度：{priorityLabels[gachaResult.pri]}　{gachaResult.desc}　報酬 +{gachaResult.xp} XP</div>
+      <div className="w-full max-w-2xl mx-auto px-4 py-6 space-y-4">
+        {/* ガチャ待機画面 */}
+        <div className="bg-white rounded-lg p-8 text-center border border-gray-200">
+          {gachaTaskVal ? (
+            // 対応中のタスク表示
+            <div>
+              <div className="mb-6">
+                <div className="inline-block bg-purple-50 border border-purple-200 rounded-full px-4 py-2 mb-4">
+                  <span className="text-sm text-purple-600">
+                    <span className="inline-block w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse"></span>
+                    対応中
+                  </span>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold mb-3">{gachaTaskVal.name}</h2>
+              <p className="text-gray-600 text-sm mb-6">{gachaTaskVal.desc}</p>
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <div className="text-xs text-gray-500 mb-1">予定XP</div>
+                <div className="text-3xl font-bold text-purple-600">+{gachaTaskVal.xp || 0} XP</div>
+              </div>
+              <button
+                onClick={handleGacha}
+                className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={gachaLock}
+              >
+                タスク完了
+              </button>
             </div>
-          ) : null}
-          <div className="gacha-hist" id="ghist">
-            {gLog.length > 0 ? (
-              <>
-                <div className="sec-lbl" style={{ marginTop: '16px' }}>ガチャ履歴</div>
-                {gLog.slice().reverse().map((entry, index) => (
-                  <div className="ghe" key={`${entry.name}-${index}`}>
-                    <span style={{ fontWeight: 500 }}>{entry.name}</span>
-                    <span className="b b-gray">+{entry.xp} XP</span>
-                  </div>
+          ) : (
+            // ガチャ待機画面
+            <div>
+              <div className="text-6xl mb-4 animate-bounce">🍲</div>
+              <h2 className="text-2xl font-bold mb-2">闇鍋ガチャ</h2>
+              <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                タスクから何が飛び出すかは運次第...
+                <br />
+                ガチャを回してタスクを引き当てよう！
+              </p>
+              <div className="bg-purple-50 border border-purple-200 rounded-full px-4 py-2 inline-flex items-center gap-2 mb-6">
+                <span className="inline-block w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
+                <span className="text-sm text-gray-600">
+                  総回数: <span className="font-bold text-purple-600">{pullTotal}</span>
+                </span>
+              </div>
+              <div className="mb-6">
+                <div className="text-xs text-gray-500 mb-2">最後の結果</div>
+                <div className="text-lg font-bold text-purple-600">{pullLast}</div>
+              </div>
+              {/* スピードモード選択 */}
+              <div className="flex gap-2 justify-center mb-8">
+                {(['normal', 'fast', 'skip'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setSpeedMode?.(mode)}
+                    className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                      speedMode === mode
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
+                  >
+                    {mode === 'normal' && '標準'}
+                    {mode === 'fast' && '高速'}
+                    {mode === 'skip' && 'スキップ'}
+                  </button>
                 ))}
-              </>
-            ) : null}
-          </div>
+              </div>
+              <button
+                onClick={handleGacha}
+                disabled={gachaLock || !gachaEnabled}
+                className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-12 py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {gachaLock ? '処理中...' : 'ガチャを回す'}
+              </button>
+            </div>
+          )}
         </div>
+        {/* ガチャ履歴 */}
+        {gLog.length > 0 && (
+          <div className="bg-white rounded-lg border border-gray-200">
+            <div className="p-4 border-b border-gray-200">
+              <h3 className="font-semibold text-gray-900">ガチャ履歴</h3>
+              <p className="text-xs text-gray-500 mt-1">{gLog.length}件</p>
+            </div>
+            <div className="divide-y divide-gray-200">
+              {gLog.slice().reverse().slice(0, 8).map((entry, index) => (
+                <div key={`${entry.name}-${index}`} className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors">
+                  <div className="w-1 h-12 bg-purple-100 rounded-full flex-shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900">{entry.name}</div>
+                    <p className="text-xs text-gray-500">{entry.rarity ?? 'NORMAL'} · {entry.time ?? ''}</p>
+                  </div>
+                  <div className="text-lg font-bold text-purple-600">+{entry.xp} XP</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -399,6 +468,45 @@ export function ApprovalView({ isActive, approvalTasks, users, priorityBadge, ha
             })}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+type NotificationPanelProps = {
+  open: boolean;
+  notifications: Notification[];
+  unreadCount: number;
+  onClose: () => void;
+  onRead: (id: number) => void;
+  onClear: () => void;
+};
+
+export function NotificationPanel({ open, notifications, unreadCount, onClose, onRead, onClear }: NotificationPanelProps) {
+  return (
+    <div className={`notif-panel ${open ? 'open' : ''}`} id="notif-panel">
+      <div className="notif-hdr">
+        <div className="notif-title">通知</div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ fontSize: '13px', color: '#999' }}>{unreadCount} 未読</div>
+          <button className="notif-clear" type="button" onClick={onClear}>すべて既読</button>
+          <button className="btn btn-sm" type="button" onClick={onClose}>閉じる</button>
+        </div>
+      </div>
+      <div className="notif-list">
+        {notifications.length === 0 ? (
+          <div className="notif-empty">通知はありません</div>
+        ) : notifications.map((n) => (
+          <div key={n.id} className={`notif-item ${n.read ? '' : 'unread'}`} onClick={() => onRead(n.id)}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ minWidth: 0 }}>
+                <div className="notif-title">{n.title}</div>
+                <div className="notif-sub">{n.sub}</div>
+              </div>
+              {!n.read ? <div className="notif-dot" /> : null}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
