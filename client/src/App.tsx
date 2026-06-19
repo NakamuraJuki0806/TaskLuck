@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import './App.css';
 import { Role, Priority, TaskStatus, User, Shift, Task, Notification } from './models';
 import useAppController from './controllers/useAppController';
@@ -57,8 +57,8 @@ export default function App() {
     selectedRole, setSelectedRole, loginUserId, setLoginUserId, currentUser, setCurrentUser,
     users, setUsers, shifts, setShifts, tasks, setTasks, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
-    toastText, setToastText, gachaLabel, setGachaLabel, gachaResult, setGachaResult, gachaLock, setGachaLock,
-    gachaEnabled, speedMode, setSpeedMode, toggleGachaEnabled, toggleTaskPool, notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs,
+    toastText, setToastText, gachaLabel, setGachaLabel, gachaLock, setGachaLock,
+    gachaEnabled, toggleGachaEnabled, toggleTaskPool, notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs,
     reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
@@ -67,21 +67,20 @@ export default function App() {
     availableUsers, activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
     handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
-    handleGacha, skipGacha, handleApproval, handleStaffCreate, approvalTasks, staffStats,
-    toastTimer, gachaInterval, gachaTimeout,
+    handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, approvalTasks, staffStats,
   } = controller;
 
-  const dsObj = dashboardStats(shifts, tasks, currentUser, isMgr, approvalCount);
-  const todayShifts = renderTodayShifts(shifts, users, currentUser);
-  const dashTasks = dashboardTasks(tasks, currentUser, isMgr);
-  const cal = renderCalendar(cy, cm, shifts, currentUser);
-  const currentMonthLabel = cal?.monthNames[cm] ?? '';
-  const shiftRows = shiftTableRows(shifts, users, currentUser, isMgr);
-  const tasksForView = taskList(tasks, currentUser, isMgr, isStf ?? false, tFilter);
-  const gachaTaskVal = gachaTask(tasks, currentUser);
-  const pullTotal = gLog.length;
-  const pullLast = gLog.length ? gLog[gLog.length - 1].rarity ?? gLog[gLog.length - 1].name : '—';
-  const staffStatsObj = staffStats(users);
+  const dsObj = useMemo(() => dashboardStats(shifts, tasks, currentUser, isMgr, approvalCount), [shifts, tasks, currentUser, isMgr, approvalCount]);
+  const todayShifts = useMemo(() => renderTodayShifts(shifts, users, currentUser), [shifts, users, currentUser]);
+  const dashTasks = useMemo(() => dashboardTasks(tasks, currentUser, isMgr), [tasks, currentUser, isMgr]);
+  const cal = useMemo(() => renderCalendar(cy, cm, shifts, currentUser), [cy, cm, shifts, currentUser]);
+  const currentMonthLabel = useMemo(() => cal?.monthNames[cm] ?? '', [cal, cm]);
+  const shiftRows = useMemo(() => shiftTableRows(shifts, users, currentUser, isMgr), [shifts, users, currentUser, isMgr]);
+  const tasksForView = useMemo(() => taskList(tasks, currentUser, isMgr, isStf ?? false, tFilter), [tasks, currentUser, isMgr, isStf, tFilter]);
+  const gachaTaskVal = useMemo(() => gachaTask(tasks, currentUser), [tasks, currentUser]);
+  const pullTotal = useMemo(() => gLog.length, [gLog]);
+  const pullLast = useMemo(() => gLog.length ? gLog[gLog.length - 1].rarity ?? gLog[gLog.length - 1].name : '—', [gLog]);
+  const staffStatsObj = useMemo(() => staffStats(users), [users]);
 
   const renderTaskActions = (task: Task) => {
     if (!currentUser) return null;
@@ -218,12 +217,11 @@ export default function App() {
               <GachaView
                 isActive={activePage === 'gacha'}
                 gachaLabel={gachaLabel}
-                gachaResult={gachaResult}
                 gLog={gLog}
-                handleGacha={() => handleGacha(tasks, currentUser, setTasks, setGachaLabel, setGachaResult, setGLog, toast, setGachaLock, gachaInterval, gachaTimeout)}
+                handleGacha={() => handleGacha(tasks, currentUser, setTasks, setGachaLabel, setGLog, toast, setGachaLock)}
+                handleCompleteGachaTask={() => handleCompleteGachaTask(setTasks, toast, gachaTaskVal)}
                 gachaTaskVal={gachaTaskVal}
                 gachaLock={gachaLock}
-                priorityLabels={PRIO_LABELS}
               />
               {activePage === 'gacha-settings' && (
                 <div className="page show" id="pg-gacha-settings">
@@ -231,9 +229,7 @@ export default function App() {
                   <GachaSettings
                     tasks={tasks}
                     gachaEnabled={gachaEnabled}
-                    speedMode={speedMode}
                     onToggleEnabled={toggleGachaEnabled}
-                    onSpeedModeChange={setSpeedMode}
                     onTogglePool={toggleTaskPool}
                   />
                 </div>
