@@ -7,7 +7,19 @@ export default function useAppController() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(USERS_INITIAL);
   const [shifts, setShifts] = useState<Shift[]>(SHIFTS_INITIAL);
-  const [shiftPatterns, setShiftPatterns] = useState<ShiftPattern[]>(SHIFT_PATTERNS_INITIAL);
+  const [shiftPatternsMap, setShiftPatternsMap] = useState<Record<number, ShiftPattern[]>>({});
+  const shiftPatterns = currentUser
+    ? (shiftPatternsMap[currentUser.id] ?? SHIFT_PATTERNS_INITIAL)
+    : SHIFT_PATTERNS_INITIAL;
+  const setShiftPatterns: React.Dispatch<React.SetStateAction<ShiftPattern[]>> = (action) => {
+    if (!currentUser) return;
+    const uid = currentUser.id;
+    setShiftPatternsMap((prev) => {
+      const current = prev[uid] ?? SHIFT_PATTERNS_INITIAL;
+      const next = typeof action === 'function' ? action(current) : action;
+      return { ...prev, [uid]: next };
+    });
+  };
   const [tasks, setTasks] = useState<Task[]>(TASKS_INITIAL);
   const [gLog, setGLog] = useState<GachaLog[]>([]);
   const [notificationOpen, setNotificationOpen] = useState(false);

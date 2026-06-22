@@ -1,24 +1,52 @@
-import React, { useState } from 'react';
-import { User, ShiftPattern } from '../models';
+import React, { useState } from "react";
+import { Dispatch, SetStateAction } from "react";
+import { User, ShiftPattern } from "../models";
+
+type CalCell = {
+  type: "prev" | "day" | "next";
+  dateNumber?: number;
+  day?: number;
+  dateKey?: string;
+  dayShifts?: unknown[];
+  myShift?: unknown;
+  isToday?: boolean;
+};
+
+type Cal = {
+  monthNames: string[];
+  dayNames: string[];
+  cells: CalCell[];
+} | null;
+
+export interface ShiftRequestEntry {
+  date: string;
+  patternId: number;
+}
 
 interface ShiftRequestScreenProps {
   isActive: boolean;
-  currentUser: any;
-  cal: { monthNames: string[]; dayNames: string[]; cells: any[] } | null;
+  currentUser: User;
+  cal: Cal;
   currentMonthLabel: string;
-  setCm: (fn: (prev: number) => number) => void;
+  setCm: Dispatch<SetStateAction<number>>;
   users: User[];
   shiftPatterns: ShiftPattern[];
-  setShiftPatterns: (fn: (prev: ShiftPattern[]) => ShiftPattern[]) => void;
+  setShiftPatterns: Dispatch<SetStateAction<ShiftPattern[]>>;
   reqDate: string;
-  setReqDate: (date: string) => void;
-  reqOff: boolean;
-  setReqOff: (off: boolean) => void;
-  reqNote: string;
-  setReqNote: (note: string) => void;
-  onSubmit: (patternId: number) => void;
+  setReqDate: (value: string) => void;
+  onSubmit: (entries: ShiftRequestEntry[]) => void;
   onCancel: () => void;
 }
+
+const CLOSED_DOW = 2;
+
+const PALETTE = [
+  { bg: "#dcfce7", fg: "#15803d" },
+  { bg: "#dbeafe", fg: "#1d4ed8" },
+  { bg: "#fef3c7", fg: "#b45309" },
+  { bg: "#ede9fe", fg: "#6d28d9" },
+  { bg: "#fce7f3", fg: "#be185d" },
+];
 
 export default function ShiftRequestScreen({
   isActive,
@@ -31,357 +59,407 @@ export default function ShiftRequestScreen({
   setShiftPatterns,
   reqDate,
   setReqDate,
-  reqOff,
-  setReqOff,
-  reqNote,
-  setReqNote,
   onSubmit,
   onCancel,
 }: ShiftRequestScreenProps) {
-  const [selectedPatternId, setSelectedPatternId] = useState<number | ''>('');
-  const [showPatternForm, setShowPatternForm] = useState(false);
-  const [newPattern, setNewPattern] = useState({
-    title: '',
-    workStart: '09:00',
-    workEnd: '17:00',
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [registeredShifts, setRegisteredShifts] = useState<Record<string, number>>({});
+  const [showForm, setShowForm] = useState(false);
+  const [draft, setDraft] = useState({
+    title: "",
+    workStart: "09:00",
+    workEnd: "17:00",
     breakTime: 0,
-    memo: '',
+    memo: "",
   });
 
-  const handlePatternCreate = () => {
-    if (!newPattern.title.trim()) {
-      alert('パターン名を入力してください');
-      return;
-    }
-    const maxId = shiftPatterns.length > 0 ? Math.max(...shiftPatterns.map((p) => p.id)) : 0;
-    setShiftPatterns((prev) => [
-      ...prev,
+  const colorFor = (pid: number) => {
+    const idx = shiftPatterns.findIndex((p) => p.id === pid);
+    return PALETTE[idx % PALETTE.length] || PALETTE[0];
+  };
+
+  const handleSelectDate = (dateKey: string, dow: number) => {
+    if (dow === CLOSED_DOW) return;
+    setSelectedDate((prev) => (prev === dateKey ? null : dateKey));
+    setReqDate(dateKey);
+  };
+
+  const registerPattern = (pid: number) => {
+    if (!selectedDate) return;
+    setRegisteredShifts((prev) => ({ ...prev, [selectedDate]: pid }));
+  };
+
+  const removeShift = (dateKey: string) => {
+    setRegisteredShifts((prev) => {
+      const next = { ...prev };
+      delete next[dateKey];
+      return next;
+    });
+  };
+
+  const handleSubmit = () => {
+    const entries = Object.entries(registeredShifts).map(([date, patternId]) => ({
+      date,
+      patternId,
+    }));
+    if (entries.length === 0) return;
+    onSubmit(entries);
+  };
+
+  const addPattern = () => {
+    if (!draft.title.trim()) return;
+    const id = shiftPatterns.length
+      ? Math.max(...shiftPatterns.map((p) => p.id)) + 1
+      : 1;
+    setShiftPatterns((ps) => [
+      ...ps,
       {
-        id: maxId + 1,
-        title: newPattern.title.trim(),
-        workStart: newPattern.workStart,
-        workEnd: newPattern.workEnd,
-        breakTime: parseInt(newPattern.breakTime.toString()) || 0,
-        memo: newPattern.memo.trim(),
+        id,
+        title: draft.title.trim(),
+        workStart: draft.workStart,
+        workEnd: draft.workEnd,
+        breakTime:
+          typeof draft.breakTime === "string"
+            ? parseInt(draft.breakTime, 10) || 0
+            : draft.breakTime,
+        memo: draft.memo.trim(),
       },
     ]);
-    setNewPattern({
-      title: '',
-      workStart: '09:00',
-      workEnd: '17:00',
-      breakTime: 0,
-      memo: '',
-    });
-    setShowPatternForm(false);
+    setDraft({ title: "", workStart: "09:00", workEnd: "17:00", breakTime: 0, memo: "" });
+    setShowForm(false);
   };
+
+  const deletePattern = (pid: number) => {
+    setShiftPatterns((ps) => ps.filter((p) => p.id !== pid));
+    setRegisteredShifts((prev) => {
+      const next: Record<string, number> = {};
+      for (const [k, v] of Object.entries(prev)) {
+        if (v !== pid) next[k] = v;
+      }
+      return next;
+    });
+  };
+
+  const selLabel = selectedDate
+    ? `${Number(selectedDate.split("-")[1])}月${Number(selectedDate.split("-")[2])}日`
+    : null;
+
+  const submitCount = Object.keys(registeredShifts).length;
+
   return (
-    <div className={`page ${isActive ? 'show' : ''}`} id="pg-shift-request">
+    <div className={`page ${isActive ? "show" : ""}`} id="pg-shift-request">
+      <style>{`
+        .sr-cell { position: relative; cursor: pointer; }
+        .sr-cell.sel { box-shadow: 0 0 0 2px #34c759; background: #f0fbf3 !important; }
+        .sr-cell.closed { background: #dcf6e5 !important; cursor: default; }
+        .sr-cell.closed:hover { background: #dcf6e5 !important; }
+        .sr-shift { position: relative; display: flex; align-items: center; justify-content: center; margin-top: 4px; font-size: 10px; font-weight: 600; border-radius: 5px; padding: 3px 5px; line-height: 1.2; }
+        .sr-x { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border: none; border-radius: 50%; background: #1d1d1f; color: #fff; font-size: 11px; line-height: 1; cursor: pointer; opacity: 0; transition: opacity .12s; display: flex; align-items: center; justify-content: center; padding: 0; }
+        .sr-cell:hover .sr-x { opacity: 1; }
+        .sr-x:hover { background: #d8413f; }
+      `}</style>
+
       <div className="ph">
         <div>
-          <div className="pt">シフト希望を提出</div>
-          <div className="ps">出勤希望日時を選択して提出してください</div>
+          <div className="pt">シフト希望提出</div>
+        </div>
+        <div style={{ display: "flex", gap: "7px" }}>
+          <button className="btn" type="button" onClick={onCancel}>
+            ← 戻る
+          </button>
+          <button
+            className="btn"
+            type="button"
+            style={{ background: "#34c759", borderColor: "#34c759", color: "#fff" }}
+            onClick={handleSubmit}
+            disabled={submitCount === 0}
+          >
+            シフト提出{submitCount > 0 ? `（${submitCount}件）` : ""}
+          </button>
         </div>
       </div>
 
-      {/* カレンダー */}
-      <div className="card" style={{ marginBottom: '12px', position: 'relative' }}>
+      {/* calendar */}
+      <div className="card" style={{ marginBottom: "12px" }}>
         {cal ? (
           <>
             <div className="cal-nav">
-              <button className="btn btn-sm" type="button" onClick={() => setCm((prev) => prev - 1 < 0 ? 11 : prev - 1)}>
+              <button
+                className="btn btn-sm"
+                type="button"
+                onClick={() => setCm((prev) => (prev - 1 < 0 ? 11 : prev - 1))}
+              >
                 ‹‹
               </button>
               <span className="cal-month">{currentMonthLabel}</span>
-              <button className="btn btn-sm" type="button" onClick={() => setCm((prev) => prev + 1 > 11 ? 0 : prev + 1)}>
+              <button
+                className="btn btn-sm"
+                type="button"
+                onClick={() => setCm((prev) => (prev + 1 > 11 ? 0 : prev + 1))}
+              >
                 ››
               </button>
             </div>
             <div className="cal-grid">
-              {cal.dayNames.map((dn) => (
-                <div className="cal-dn" key={dn}>
+              {cal.dayNames.map((dn, i) => (
+                <div
+                  className="cal-dn"
+                  key={dn}
+                  style={{ color: i === 0 ? "#e0506a" : i === 6 ? "#4b9be0" : undefined }}
+                >
                   {dn}
                 </div>
               ))}
               {cal.cells.map((cell, idx) => {
-                if (cell.type === 'prev' || cell.type === 'next')
+                if (cell.type === "prev" || cell.type === "next") {
                   return (
                     <div className="cal-cell other" key={idx}>
                       <div className="cal-n">{cell.dateNumber}</div>
                     </div>
                   );
+                }
+
+                const dow = cell.dateKey ? new Date(cell.dateKey).getDay() : -1;
+                const closed = dow === CLOSED_DOW;
+                const isSel = cell.dateKey === selectedDate;
+                const pid = cell.dateKey ? registeredShifts[cell.dateKey] : undefined;
+                const pattern = pid != null ? shiftPatterns.find((p) => p.id === pid) : null;
+                const col = pattern ? colorFor(pattern.id) : null;
+
                 return (
                   <div
-                    className={`cal-cell${cell.isToday ? ' today' : ''}${reqDate === cell.dateKey ? ' selected' : ''}`}
+                    className={`cal-cell sr-cell${cell.isToday ? " today" : ""}${isSel ? " sel" : ""}${closed ? " closed" : ""}`}
                     key={cell.dateKey}
-                    onClick={() => setReqDate(cell.dateKey)}
-                    style={{ cursor: 'pointer' }}
+                    onClick={() => cell.dateKey && handleSelectDate(cell.dateKey, dow)}
                   >
-                    <div className="cal-n">{cell.day}</div>
+                    <div className="cal-n" style={{ color: dow === 0 ? "#e0506a" : dow === 6 ? "#4b9be0" : undefined }}>{cell.day}</div>
+                    {closed && (
+                      <div style={{ fontSize: "10px", color: "#2f9e57", fontWeight: 600, textAlign: "center", marginTop: "2px" }}>
+                        定休日
+                      </div>
+                    )}
+                    {pattern && col && !closed && (
+                      <span className="sr-shift" style={{ background: col.bg, color: col.fg }}>
+                        {pattern.workStart}～{pattern.workEnd}
+                        <button
+                          className="sr-x"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (cell.dateKey) removeShift(cell.dateKey);
+                          }}
+                          aria-label="削除"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )}
                   </div>
                 );
               })}
             </div>
-
-            {/* パターン登録ボタン */}
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => setShowPatternForm(!showPatternForm)}
-              style={{
-                marginTop: '12px',
-                width: '100%',
-                fontSize: '12px',
-              }}
-            >
-              {showPatternForm ? '閉じる' : '+ 新規パターン'}
-            </button>
-
-            {/* パターン登録フォーム */}
-            {showPatternForm && (
-              <div
-                style={{
-                  marginTop: '12px',
-                  padding: '12px',
-                  background: '#f9f9f9',
-                  borderRadius: '7px',
-                  border: '1px solid #e5e5e5',
-                }}
-              >
-                <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '8px' }}>新規パターン</div>
-                <div className="mfg">
-                  <label style={{ fontSize: '12px' }}>パターン名</label>
-                  <input
-                    type="text"
-                    value={newPattern.title}
-                    onChange={(e) => setNewPattern({ ...newPattern, title: e.target.value })}
-                    placeholder="例：パターンA"
-                    style={{ fontSize: '12px' }}
-                  />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <div className="mfg">
-                    <label style={{ fontSize: '12px' }}>開始時間</label>
-                    <input
-                      type="time"
-                      value={newPattern.workStart}
-                      onChange={(e) => setNewPattern({ ...newPattern, workStart: e.target.value })}
-                      style={{ fontSize: '12px' }}
-                    />
-                  </div>
-                  <div className="mfg">
-                    <label style={{ fontSize: '12px' }}>終了時間</label>
-                    <input
-                      type="time"
-                      value={newPattern.workEnd}
-                      onChange={(e) => setNewPattern({ ...newPattern, workEnd: e.target.value })}
-                      style={{ fontSize: '12px' }}
-                    />
-                  </div>
-                </div>
-                <div className="mfg">
-                  <label style={{ fontSize: '12px' }}>休憩時間（分）</label>
-                  <input
-                    type="number"
-                    value={newPattern.breakTime}
-                    onChange={(e) => setNewPattern({ ...newPattern, breakTime: Number(e.target.value) })}
-                    min="0"
-                    step="15"
-                    style={{ fontSize: '12px' }}
-                  />
-                </div>
-                <div className="mfg">
-                  <label style={{ fontSize: '12px' }}>メモ</label>
-                  <input
-                    type="text"
-                    value={newPattern.memo}
-                    onChange={(e) => setNewPattern({ ...newPattern, memo: e.target.value })}
-                    placeholder="例：平日用"
-                    style={{ fontSize: '12px' }}
-                  />
-                </div>
-                <div className="mf" style={{ gap: '6px', marginTop: '8px' }}>
-                  <button className="btn btn-sm" type="button" onClick={() => setShowPatternForm(false)}>
-                    キャンセル
-                  </button>
-                  <button className="btn btn-sm btn-dark" type="button" onClick={handlePatternCreate}>
-                    登録
-                  </button>
-                </div>
-              </div>
-            )}
           </>
         ) : null}
       </div>
 
-      {/* フォーム */}
+      {/* shift patterns */}
       <div className="card">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!reqDate) {
-              alert('日付を選択してください');
-              return;
-            }
-            if (!selectedPatternId && !reqOff) {
-              alert('シフトパターンを選択してください');
-              return;
-            }
-            onSubmit(selectedPatternId as number);
-          }}
-          style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-        >
-          {/* 選択日付表示 */}
-          {reqDate && (
-            <div
-              style={{
-                background: '#f0f9ff',
-                border: '1px solid #bfdbfe',
-                borderRadius: '7px',
-                padding: '10px 12px',
-                fontSize: '13px',
-                color: '#1e40af',
-              }}
-            >
-              ✓ 選択日付: <strong>{new Date(reqDate + 'T00:00:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}</strong>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: "14px", marginBottom: "4px" }}>
+              シフトパターン
             </div>
-          )}
-
-          {/* 出勤不可チェック */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '10px 12px',
-              background: '#fafafa',
-              borderRadius: '7px',
-              cursor: 'pointer',
-            }}
-            onClick={() => setReqOff(!reqOff)}
-          >
-            <input
-              type="checkbox"
-              checked={reqOff}
-              onChange={(e) => setReqOff(e.target.checked)}
-              style={{ cursor: 'pointer' }}
-            />
-            <label style={{ cursor: 'pointer', margin: 0, flex: 1 }}>
-              この日は出勤不可
-            </label>
-          </div>
-
-          {/* シフトパターン選択 */}
-          {!reqOff && (
-            <div className="mfg">
-              <label>シフトパターン</label>
-              <select
-                value={selectedPatternId}
-                onChange={(e) => setSelectedPatternId(e.target.value ? Number(e.target.value) : '')}
-                required={!reqOff}
-              >
-                <option value="">-- パターンを選択 --</option>
-                {shiftPatterns.map((pattern) => (
-                  <option key={pattern.id} value={pattern.id}>
-                    {pattern.title} ({pattern.workStart}～{pattern.workEnd}, 休憩{pattern.breakTime}分) {pattern.memo && `- ${pattern.memo}`}
-                  </option>
-                ))}
-              </select>
-              <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-                あらかじめ登録されたシフトパターンから選択します
-              </div>
+            <div style={{ fontSize: "12px", color: "#86868b" }}>
+              {selLabel
+                ? <>「<b style={{ color: "#2bb14d" }}>{selLabel}</b>」に登録するパターンを押してください</>
+                : "カレンダーの日付を選んでから、パターンを押してください"}
             </div>
-          )}
-
-          {/* 備考 */}
-          <div className="mfg">
-            <label>備考（任意）</label>
-            <textarea
-              value={reqNote}
-              onChange={(e) => setReqNote(e.target.value)}
-              placeholder="例：この日だけ16時までなら可能 など"
-              style={{
-                borderRadius: '7px',
-                padding: '8px 11px',
-                border: '1px solid #e5e5e5',
-                fontFamily: 'inherit',
-                fontSize: '13px',
-                minHeight: '60px',
-                resize: 'vertical',
-              }}
-            />
           </div>
-
-          {/* 確認エリア */}
-          <div
-            style={{
-              background: '#f5f5f7',
-              border: '1px solid #e5e5e5',
-              borderRadius: '8px',
-              padding: '12px 14px',
-              fontSize: '12px',
-              color: '#666',
-            }}
+          <button
+            className="btn btn-sm"
+            type="button"
+            style={{ background: "#34c759", borderColor: "#34c759", color: "#fff" }}
+            onClick={() => setShowForm((v) => !v)}
           >
-            <div style={{ fontWeight: 500, marginBottom: '6px' }}>確認事項</div>
-            <ul
-              style={{
-                marginLeft: '18px',
-                paddingLeft: 0,
-                lineHeight: '1.6',
-              }}
-            >
-              <li>提出されたシフト希望は管理者による確認が必要です</li>
-              <li>最終的な勤務シフトは管理者より別途通知されます</li>
-              {reqOff && (
-                <li style={{ color: '#b91c1c', fontWeight: 500 }}>
-                  ⚠️ この日は出勤不可として登録されます
-                </li>
-              )}
-            </ul>
-          </div>
-
-          {/* ボタン */}
-          <div className="mf" style={{ marginTop: '16px' }}>
-            <button
-              className="btn"
-              type="button"
-              onClick={onCancel}
-              style={{ marginRight: 'auto' }}
-            >
-              キャンセル
-            </button>
-            <button className="btn btn-dark" type="submit" disabled={!reqDate}>
-              シフト希望を提出
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* 情報カード */}
-      <div
-        className="card"
-        style={{
-          marginTop: '24px',
-          background: '#faf5ff',
-          border: '1px solid #f3e8ff',
-        }}
-      >
-        <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '8px', color: '#7e22ce' }}>
-          ℹ️ シフト希望について
+            {showForm ? "閉じる" : "+ 新規"}
+          </button>
         </div>
-        <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.6' }}>
-          <p style={{ margin: '0 0 6px 0' }}>
-            • シフト希望は毎月末日までに提出してください
-          </p>
-          <p style={{ margin: '0 0 6px 0' }}>
-            • 希望が必ず採用されるわけではありません
-          </p>
-          <p style={{ margin: '0 0 6px 0' }}>
-            • 希望内容に関する質問は店長までお問い合わせください
-          </p>
-          <p style={{ margin: 0 }}>
-            • 提出後の変更は通知にて可能です
-          </p>
+
+        {showForm && (
+          <div
+            style={{
+              background: "#fafafa",
+              border: "1px solid #e7e7ea",
+              borderRadius: "10px",
+              padding: "12px",
+              marginBottom: "12px",
+            }}
+          >
+            <div style={{ display: "flex", gap: "10px", marginBottom: "10px", flexWrap: "wrap" }}>
+              <label style={{ flex: 1, minWidth: "120px", fontSize: "12px", color: "#555" }}>
+                パターン名
+                <input
+                  value={draft.title}
+                  placeholder="例：パターンC"
+                  onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+                  style={{ display: "block", width: "100%", marginTop: "4px", border: "1px solid #e7e7ea", borderRadius: "6px", padding: "7px 8px", fontSize: "13px" }}
+                />
+              </label>
+              <label style={{ flex: 1, minWidth: "120px", fontSize: "12px", color: "#555" }}>
+                メモ
+                <input
+                  value={draft.memo}
+                  placeholder="例：早番"
+                  onChange={(e) => setDraft({ ...draft, memo: e.target.value })}
+                  style={{ display: "block", width: "100%", marginTop: "4px", border: "1px solid #e7e7ea", borderRadius: "6px", padding: "7px 8px", fontSize: "13px" }}
+                />
+              </label>
+            </div>
+            <div style={{ display: "flex", gap: "10px", marginBottom: "10px", flexWrap: "wrap" }}>
+              <label style={{ flex: 1, minWidth: "100px", fontSize: "12px", color: "#555" }}>
+                開始
+                <input
+                  type="time"
+                  value={draft.workStart}
+                  onChange={(e) => setDraft({ ...draft, workStart: e.target.value })}
+                  style={{ display: "block", width: "100%", marginTop: "4px", border: "1px solid #e7e7ea", borderRadius: "6px", padding: "7px 8px", fontSize: "13px" }}
+                />
+              </label>
+              <label style={{ flex: 1, minWidth: "100px", fontSize: "12px", color: "#555" }}>
+                終了
+                <input
+                  type="time"
+                  value={draft.workEnd}
+                  onChange={(e) => setDraft({ ...draft, workEnd: e.target.value })}
+                  style={{ display: "block", width: "100%", marginTop: "4px", border: "1px solid #e7e7ea", borderRadius: "6px", padding: "7px 8px", fontSize: "13px" }}
+                />
+              </label>
+              <label style={{ flex: 1, minWidth: "100px", fontSize: "12px", color: "#555" }}>
+                休憩（分）
+                <input
+                  type="number"
+                  min="0"
+                  step="15"
+                  value={draft.breakTime}
+                  onChange={(e) => setDraft({ ...draft, breakTime: parseInt(e.target.value, 10) || 0 })}
+                  style={{ display: "block", width: "100%", marginTop: "4px", border: "1px solid #e7e7ea", borderRadius: "6px", padding: "7px 8px", fontSize: "13px" }}
+                />
+              </label>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+              <button className="btn btn-sm" type="button" onClick={() => setShowForm(false)}>
+                キャンセル
+              </button>
+              <button className="btn btn-sm btn-dark" type="button" onClick={addPattern}>
+                登録
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div style={{ fontSize: "13px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1.3fr 1fr 1fr 1.4fr 40px",
+              gap: "8px",
+              padding: "8px",
+              fontSize: "12px",
+              color: "#86868b",
+              borderBottom: "1px solid #e7e7ea",
+            }}
+          >
+            <span>タイトル</span>
+            <span>勤務時間</span>
+            <span>休憩（分）</span>
+            <span>メモ</span>
+            <span />
+          </div>
+
+          {shiftPatterns.length === 0 && (
+            <div style={{ padding: "20px 8px", textAlign: "center", color: "#86868b", fontSize: "13px" }}>
+              パターンがありません。「+ 新規」から作成してください。
+            </div>
+          )}
+
+          {shiftPatterns.map((p) => {
+            const col = colorFor(p.id);
+            return (
+              <div
+                key={p.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1.3fr 1fr 1fr 1.4fr 40px",
+                  gap: "8px",
+                  padding: "10px 8px",
+                  borderBottom: "1px solid #f1f1f3",
+                  borderRadius: "8px",
+                  cursor: selectedDate ? "pointer" : "default",
+                  transition: "background .1s",
+                }}
+                onClick={() => registerPattern(p.id)}
+                onMouseOver={(e) => { if (selectedDate) (e.currentTarget as HTMLDivElement).style.background = "#f0fbf3"; }}
+                onMouseOut={(e) => { (e.currentTarget as HTMLDivElement).style.background = ""; }}
+              >
+                <span>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      padding: "4px 12px",
+                      borderRadius: "999px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      background: col.bg,
+                      color: col.fg,
+                    }}
+                  >
+                    {p.title}
+                  </span>
+                </span>
+                <span style={{ display: "flex", alignItems: "center" }}>
+                  {p.workStart}-{p.workEnd}
+                </span>
+                <span style={{ display: "flex", alignItems: "center" }}>
+                  {p.breakTime}分
+                </span>
+                <span style={{ display: "flex", alignItems: "center", color: "#555" }}>
+                  {p.memo || "—"}
+                </span>
+                <span style={{ textAlign: "right", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+                  <button
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "28px",
+                      height: "28px",
+                      border: "none",
+                      borderRadius: "8px",
+                      background: "#fee2e2",
+                      cursor: "pointer",
+                      padding: 0,
+                      transition: "background .15s, transform .1s",
+                    }}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deletePattern(p.id);
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.background = "#fca5a5"; e.currentTarget.style.transform = "scale(1.12)"; }}
+                    onMouseOut={(e) => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.transform = "scale(1)"; }}
+                    aria-label="パターンを削除"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    </svg>
+                  </button>
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

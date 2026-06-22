@@ -3,7 +3,7 @@ import './App.css';
 import { Role, Priority, TaskStatus, User, Shift, ShiftPattern, Task, Notification } from './models';
 import useAppController from './controllers/useAppController';
 import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, StaffView, NotificationPanel } from './views/Views';
-import ShiftRequestScreen from './views/ShiftRequestScreen';
+import ShiftRequestScreen, { ShiftRequestEntry } from './views/ShiftRequestScreen';
 import GachaSettings from './views/GachaSettings';
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -215,14 +215,12 @@ export default function App() {
                 setShiftPatterns={setShiftPatterns}
                 reqDate={reqDate}
                 setReqDate={setReqDate}
-                reqOff={reqOff}
-                setReqOff={setReqOff}
-                reqNote={reqNote}
-                setReqNote={setReqNote}
-                onSubmit={(patternId) => {
-                  const pattern = shiftPatterns.find((p) => p.id === patternId);
-                  if (pattern) {
-                    handleShiftRequestSubmit(currentUser, reqDate, pattern.workStart, pattern.workEnd, setShifts, setModal, toast);
+                onSubmit={(entries) => {
+                  for (const entry of entries) {
+                    const pattern = shiftPatterns.find((p) => p.id === entry.patternId);
+                    if (pattern) {
+                      handleShiftRequestSubmit(currentUser, entry.date, pattern.workStart, pattern.workEnd, setShifts, setModal, toast);
+                    }
                   }
                   handleNav('shift');
                 }}
