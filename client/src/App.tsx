@@ -173,8 +173,6 @@ export default function App() {
                 dsObj={dsObj}
                 tasks={tasks}
                 users={users}
-                approvalTasks={approvalTasks}
-                handleApproval={(id, approved) => handleApproval(id, approved, setTasks, tasks, setUsers, toast)}
                 todayShifts={todayShifts}
                 dashTasks={dashTasks}
                 statusBadge={statusBadge}
@@ -205,20 +203,21 @@ export default function App() {
                 onShiftCreateSubmit={() => handleShiftCreateSubmit(csUid, csDate, csStart, csEnd, setShifts, setModal, toast)}
               />
 
-              <TaskView
-                isActive={activePage === 'task'}
-                isStf={!!isStf}
-                tFilter={tFilter}
-                setTFilter={setTFilter}
-                tasksForView={tasksForView}
-                allTasks={tasks}
-                users={users}
-                priorityBadge={priorityBadge}
-                statusBadge={statusBadge}
-                renderTaskActions={renderTaskActions}
-                onTogglePool={toggleTaskPool}
-                onOpenTaskModal={() => setModal('modal-ct')}
-              />
+              {currentUser?.role !== 'part' ? (
+                <TaskView
+                  isActive={activePage === 'task'}
+                  isStf={!!isStf}
+                  tFilter={tFilter}
+                  setTFilter={setTFilter}
+                  tasksForView={tasksForView}
+                  allTasks={tasks}
+                  users={users}
+                  priorityBadge={priorityBadge}
+                  statusBadge={statusBadge}
+                  renderTaskActions={renderTaskActions}
+                  onOpenTaskModal={() => setModal('modal-ct')}
+                />
+              ) : null}
               <GachaView
                 isActive={activePage === 'gacha'}
                 gLog={gLog}

@@ -12,14 +12,12 @@ type TaskViewProps = {
   priorityBadge: (p: Priority) => ReactNode;
   statusBadge: (s: TaskStatus) => ReactNode;
   renderTaskActions: (task: Task) => ReactNode;
-  onTogglePool: (taskId: number) => void;
   onOpenTaskModal: () => void;
 };
 
-export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, allTasks, users, priorityBadge, statusBadge, renderTaskActions, onTogglePool, onOpenTaskModal }: TaskViewProps) {
+export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, allTasks, users, priorityBadge, statusBadge, renderTaskActions, onOpenTaskModal }: TaskViewProps) {
   const [poolFilter, setPoolFilter] = useState<'all' | 'in' | 'out'>('all');
   const [selectedPrios, setSelectedPrios] = useState<Priority[] | []>([]);
-  const [selectedStatuses, setSelectedStatuses] = useState<TaskStatus[] | []>([]);
   const [assigneeFilter, setAssigneeFilter] = useState<number | 'all' | 'unassigned'>('all');
   const [xpMin, setXpMin] = useState<number | ''>('');
   const [xpMax, setXpMax] = useState<number | ''>('');
@@ -30,7 +28,6 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
   const activeFilterCount = [
     poolFilter !== 'all',
     selectedPrios.length > 0,
-    selectedStatuses.length > 0,
     assigneeFilter !== 'all',
     xpMin !== '',
     xpMax !== '',
@@ -40,7 +37,6 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
     let list = tasksForView.slice();
     if (poolFilter !== 'all') list = list.filter((t) => poolFilter === 'in' ? !!t.inPool : !t.inPool);
     if (selectedPrios.length) list = list.filter((t) => selectedPrios.includes(t.pri));
-    if (selectedStatuses.length) list = list.filter((t) => selectedStatuses.includes(t.st));
     if (assigneeFilter !== 'all') {
       if (assigneeFilter === 'unassigned') {
         list = list.filter((t) => !t.to);
@@ -62,7 +58,7 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
     });
 
     return list;
-  }, [tasksForView, poolFilter, selectedPrios, selectedStatuses, assigneeFilter, xpMin, xpMax, sortKey, sortOrder]);
+  }, [tasksForView, poolFilter, selectedPrios, assigneeFilter, xpMin, xpMax, sortKey, sortOrder]);
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-task">
       <div className="ph">
@@ -79,17 +75,12 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
           ))}
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <select value={poolFilter} onChange={(e) => setPoolFilter(e.target.value as any)}>
-              <option value="all">プール: 全て</option>
-              <option value="in">プール: チェックあり</option>
-              <option value="out">プール: チェックなし</option>
-            </select>
-            <div style={{ fontSize: '12px', color: '#666', marginLeft: '4px' }}>{allTasks.filter((t) => t.inPool).length}/{allTasks.length} プール</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>{allTasks.filter((t) => t.inPool).length}/{allTasks.length} プール</div>
             <button className="btn btn-sm" type="button" onClick={() => setShowFilterPopup(true)}>
               絞り込み条件{activeFilterCount ? ` (${activeFilterCount})` : ''}
             </button>
             <select value={sortKey} onChange={(e) => setSortKey(e.target.value as any)}>
-              <option value="name">並び替え: 名前</option>
+              <option value="name">名前で並び替え</option>
               <option value="pri">優先度</option>
               <option value="to">担当</option>
               <option value="xp">XP</option>
@@ -112,8 +103,8 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
                     <div style={{ fontSize: '14px', marginBottom: '8px' }}>プール</div>
                     <select value={poolFilter} onChange={(e) => setPoolFilter(e.target.value as any)} style={{ width: '100%' }}>
                       <option value="all">全て</option>
-                      <option value="in">チェックあり</option>
-                      <option value="out">チェックなし</option>
+                      <option value="in">プール内</option>
+                      <option value="out">プール外</option>
                     </select>
                   </div>
                   <div>
@@ -142,15 +133,6 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: '14px', marginBottom: '8px' }}>状態</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><input type="checkbox" checked={selectedStatuses.includes('pending')} onChange={(e) => setSelectedStatuses((prev) => e.target.checked ? [...prev, 'pending'] : prev.filter((s) => s !== 'pending'))} /> 未着手</label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><input type="checkbox" checked={selectedStatuses.includes('in_progress')} onChange={(e) => setSelectedStatuses((prev) => e.target.checked ? [...prev, 'in_progress'] : prev.filter((s) => s !== 'in_progress'))} /> 進行中</label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><input type="checkbox" checked={selectedStatuses.includes('review')} onChange={(e) => setSelectedStatuses((prev) => e.target.checked ? [...prev, 'review'] : prev.filter((s) => s !== 'review'))} /> 承認待ち</label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><input type="checkbox" checked={selectedStatuses.includes('done')} onChange={(e) => setSelectedStatuses((prev) => e.target.checked ? [...prev, 'done'] : prev.filter((s) => s !== 'done'))} /> 完了</label>
-                    </div>
-                  </div>
-                  <div>
                     <div style={{ fontSize: '14px', marginBottom: '8px' }}>XP</div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input type="number" value={xpMin} min={0} onChange={(e) => setXpMin(e.target.value === '' ? '' : Number(e.target.value))} placeholder="最小" style={{ width: '100%' }} />
@@ -176,7 +158,6 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
                   <button className="btn" type="button" onClick={() => {
                     setPoolFilter('all');
                     setSelectedPrios([]);
-                    setSelectedStatuses([]);
                     setAssigneeFilter('all');
                     setXpMin('');
                     setXpMax('');
@@ -197,7 +178,6 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
         <table className="tbl" id="ttbl">
           <thead>
             <tr>
-              <th>プール</th>
               <th>タスク名</th>
               <th>優先度</th>
               <th>担当</th>
@@ -208,14 +188,11 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
           </thead>
           <tbody>
             {filteredTasks.length === 0 ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: '#aaa', padding: '2rem', fontSize: '13px' }}>タスクはありません</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', color: '#aaa', padding: '2rem', fontSize: '13px' }}>タスクはありません</td></tr>
             ) : filteredTasks.map((task) => {
               const assignee = task.to ? users.find((user) => user.id === task.to) : null;
               return (
                 <tr key={task.id}>
-                  <td style={{ textAlign: 'center' }}>
-                    <input type="checkbox" checked={!!task.inPool} onChange={() => onTogglePool(task.id)} />
-                  </td>
                   <td>
                     <div style={{ fontSize: '13px', fontWeight: 500 }}>{task.name}</div>
                     <div style={{ fontSize: '11px', color: '#aaa' }}>{task.desc}</div>

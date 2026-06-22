@@ -132,6 +132,7 @@ export default function useAppController() {
   };
 
   const handleNav = (page: typeof activePage) => {
+    if (page === 'task' && currentUser?.role === 'part') return;
     setActivePage(page);
   };
 
@@ -150,6 +151,7 @@ export default function useAppController() {
   ].filter((item) => {
     if (item.mgrOnly && !isMgr) return false;
     if (item.partOnly && currentUser?.role === 'manager') return false;
+    if (item.id === 'task' && currentUser?.role === 'part') return false;
     return true;
   }), [currentUser, isMgr]);
 
