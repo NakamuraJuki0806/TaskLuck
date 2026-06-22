@@ -2,8 +2,7 @@ import { useMemo } from 'react';
 import './App.css';
 import { Role, Priority, TaskStatus, User, Shift, Task, Notification } from './models';
 import useAppController from './controllers/useAppController';
-import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, BusinessInfoView, StaffView, NotificationPanel } from './views';
-import GachaSettings from './views/GachaSettings';
+import { AuthView, DashboardView, ShiftView, TaskView, GachaView, BusinessInfoView, StaffView, NotificationPanel } from './views';
 
 const ROLE_LABELS: Record<Role, string> = {
   manager: '店長',
@@ -58,7 +57,7 @@ export default function App() {
     users, setUsers, shifts, setShifts, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, gachaLock, setGachaLock,
-    gachaEnabled, toggleGachaEnabled, toggleTaskPool, notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs,
+    notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs, handleNotificationAction, toggleTaskPool,
     reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
@@ -87,8 +86,14 @@ export default function App() {
     if (isMgr) {
       return (
         <>
-          {!task.to ? <button className="btn btn-sm" type="button" onClick={() => openAssignModal(task.id, users, setAssignTaskId, setAssignUid, setModal)}>割当</button> : null}
-          <button className="btn btn-sm btn-danger" type="button" onClick={() => handleTaskDelete(task.id, setTasks, toast)}>削除</button>
+          {task.st === 'review' ? (
+            <>
+              <button className="btn btn-sm" type="button" style={{ color: '#15803d', borderColor: '#bbf7d0' }} onClick={() => handleApproval(task.id, true, setTasks, tasks, setUsers, toast)}>承認</button>
+              <button className="btn btn-sm btn-danger" type="button" onClick={() => handleApproval(task.id, false, setTasks, tasks, setUsers, toast)}>却下</button>
+            </>
+          ) : (
+            <button className="btn btn-sm btn-danger" type="button" onClick={() => handleTaskDelete(task.id, setTasks, toast)}>削除</button>
+          )}
         </>
       );
     }
@@ -148,7 +153,6 @@ export default function App() {
                     onClick={() => item.id === 'notifications' ? toggleNotif() : handleNav(item.id as typeof activePage)}
                   >
                     {ICONS[item.ic]}<span>{item.lbl}</span>
-                    {item.id === 'approval' && approvalCount > 0 ? <span className="ni-badge">{approvalCount}</span> : null}
                     {item.id === 'notifications' && unreadCount > 0 ? <span className="ni-badge">{unreadCount}</span> : null}
                   </button>
                 ))}
@@ -168,6 +172,9 @@ export default function App() {
                 currentUser={currentUser}
                 dsObj={dsObj}
                 tasks={tasks}
+                users={users}
+                approvalTasks={approvalTasks}
+                handleApproval={(id, approved) => handleApproval(id, approved, setTasks, tasks, setUsers, toast)}
                 todayShifts={todayShifts}
                 dashTasks={dashTasks}
                 statusBadge={statusBadge}
@@ -204,10 +211,12 @@ export default function App() {
                 tFilter={tFilter}
                 setTFilter={setTFilter}
                 tasksForView={tasksForView}
+                allTasks={tasks}
                 users={users}
                 priorityBadge={priorityBadge}
                 statusBadge={statusBadge}
                 renderTaskActions={renderTaskActions}
+                onTogglePool={toggleTaskPool}
                 onOpenTaskModal={() => setModal('modal-ct')}
               />
               <GachaView
@@ -218,24 +227,7 @@ export default function App() {
                 gachaTaskVal={gachaTaskVal}
                 gachaLock={gachaLock}
               />
-              {activePage === 'gacha-settings' && (
-                <div className="page show" id="pg-gacha-settings">
-                  <div className="ph"><div><div className="pt">ガチャ設定</div></div></div>
-                  <GachaSettings
-                    tasks={tasks}
-                    gachaEnabled={gachaEnabled}
-                    onToggleEnabled={toggleGachaEnabled}
-                    onTogglePool={toggleTaskPool}
-                  />
-                </div>
-              )}
-              <ApprovalView
-                isActive={activePage === 'approval'}
-                approvalTasks={approvalTasks}
-                users={users}
-                priorityBadge={priorityBadge}
-                handleApproval={(id, approved) => handleApproval(id, approved, setTasks, tasks, setUsers, toast)}
-              />
+              {/* Approval view moved into the Dashboard */}
               <BusinessInfoView
                 isActive={activePage === 'business-info'}
                 businessInfo={businessInfo}
@@ -262,6 +254,9 @@ export default function App() {
           onClose={toggleNotif}
           onRead={readNotif}
           onClear={clearNotifs}
+          isMgr={isMgr}
+          onApprove={(taskId:number) => handleNotificationAction(taskId, true)}
+          onReject={(taskId:number) => handleNotificationAction(taskId, false)}
         />
       ) : null}
 

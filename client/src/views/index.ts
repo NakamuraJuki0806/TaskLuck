@@ -3,7 +3,6 @@ export { DashboardView } from './DashboardView';
 export { ShiftView } from './ShiftView';
 export { TaskView } from './TaskView';
 export { GachaView } from './GachaView';
-export { ApprovalView } from './ApprovalView';
 export { BusinessInfoView } from './BusinessInfoView';
 export { StaffView } from './StaffView';
 export { NotificationPanel } from './NotificationPanel';

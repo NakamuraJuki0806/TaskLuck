@@ -11,9 +11,12 @@ type DashboardViewProps = {
   dashTasks: Task[] | null;
   statusBadge: (s: TaskStatus) => ReactNode;
   priorityBadge: (p: Priority) => ReactNode;
+  approvalTasks: Task[];
+  users: User[];
+  handleApproval: (id: number, approved: boolean) => void;
 };
 
-export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, todayShifts, dashTasks, statusBadge, priorityBadge }: DashboardViewProps) {
+export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, todayShifts, dashTasks, statusBadge, priorityBadge, approvalTasks, users, handleApproval }: DashboardViewProps) {
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-dashboard">
       <div className="ph">
@@ -69,6 +72,49 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
             </div>
           ))
         }</div></div>
+      </div>
+      <div className="card">
+        <div className="sec-lbl">承認待ち</div>
+        <div className="card-body">
+          <table className="tbl" id="atbl">
+            <thead>
+              <tr>
+                <th>タスク名</th>
+                <th>担当</th>
+                <th>優先度</th>
+                <th>XP</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {approvalTasks.length === 0 ? (
+                <tr><td colSpan={5} style={{ textAlign: 'center', color: '#aaa', padding: '2rem', fontSize: '13px' }}>承認待ちタスクはありません</td></tr>
+              ) : approvalTasks.map((task) => {
+                const assignee = users.find((user) => user.id === task.to) ?? { name: '?', ini: '?' };
+                return (
+                  <tr key={task.id}>
+                    <td>
+                      <div style={{ fontSize: '13px', fontWeight: 500 }}>{task.name}</div>
+                      <div style={{ fontSize: '11px', color: '#aaa' }}>{task.desc}</div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <div className="sb-avatar" style={{ width: '22px', height: '22px', fontSize: '9px' }}>{assignee.ini}</div>
+                        {assignee.name}
+                      </div>
+                    </td>
+                    <td>{priorityBadge(task.pri)}</td>
+                    <td style={{ fontSize: '13px', fontWeight: 500, color: '#555' }}>+{task.xp}</td>
+                    <td style={{ display: 'flex', gap: '5px', padding: '8px 12px' }}>
+                      <button className="btn btn-sm" type="button" style={{ color: '#15803d', borderColor: '#bbf7d0' }} onClick={() => handleApproval(task.id, true)}>承認</button>
+                      <button className="btn btn-sm btn-danger" type="button" onClick={() => handleApproval(task.id, false)}>却下</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
