@@ -57,19 +57,19 @@ export default function App() {
     users, setUsers, shifts, setShifts, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, gachaLock, setGachaLock,
-    notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs, handleNotificationAction, toggleTaskPool,
+    notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs, handleNotificationAction,
     reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
-    asName, setAsName, asRole, setAsRole, assignTaskId, setAssignTaskId, assignUid, setAssignUid,
-    toast, handleLogin, logout, handleNav, isMgr, isStf, approvalCount,
-    availableUsers, activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
+    asName, setAsName, asRole, setAsRole,
+    toast, handleLogin, logout, handleNav, isMgr, isStf,
+    activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
-    handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
-    handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, approvalTasks, staffStats,
+    handleTaskStart, handleRequestDone, handleTaskDelete, handleTaskCreateSubmit,
+    handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, staffStats,
   } = controller;
 
-  const dsObj = useMemo(() => dashboardStats(shifts, tasks, currentUser, isMgr, approvalCount), [shifts, tasks, currentUser, isMgr, approvalCount]);
+  const dsObj = useMemo(() => dashboardStats(shifts, tasks, currentUser, isMgr), [shifts, tasks, currentUser, isMgr]);
   const todayShifts = useMemo(() => renderTodayShifts(shifts, users, currentUser), [shifts, users, currentUser]);
   const dashTasks = useMemo(() => dashboardTasks(tasks, currentUser, isMgr), [tasks, currentUser, isMgr]);
   const cal = useMemo(() => renderCalendar(cy, cm, shifts, currentUser), [cy, cm, shifts, currentUser]);
@@ -322,20 +322,6 @@ export default function App() {
           <div className="mf">
             <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
             <button className="btn btn-dark" type="button" onClick={() => handleStaffCreate(asName, asRole, setUsers, setModal, toast)}>追加</button>
-          </div>
-        </div>
-      </div>
-
-      <div className={`overlay ${modal === 'modal-assign' ? 'open' : ''}`} id="modal-assign" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
-        <div className="modal">
-          <h3>担当者を割り当て</h3>
-          <div className="mfg"><label>スタッフ</label><select value={assignUid} onChange={(event) => setAssignUid(Number(event.target.value))} id="asgn-u">
-            {availableUsers.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
-          </select></div>
-          <input type="hidden" id="asgn-tid" value={assignTaskId ?? ''} />
-          <div className="mf">
-            <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
-            <button className="btn btn-dark" type="button" onClick={() => handleAssignSubmit(assignTaskId, assignUid, setTasks, setModal, users, toast)}>割り当て</button>
           </div>
         </div>
       </div>

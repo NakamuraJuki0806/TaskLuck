@@ -33,12 +33,8 @@ export default function useAppController() {
   const [ctXp, setCtXp] = useState(50);
   const [asName, setAsName] = useState('');
   const [asRole, setAsRole] = useState<Role>('part');
-  const [assignTaskId, setAssignTaskId] = useState<number | null>(null);
-  const [assignUid, setAssignUid] = useState<number>(USERS_INITIAL.find((u) => u.role === 'part')?.id ?? 1);
-
   const isMgr = currentUser?.role === 'manager';
   const isStf = currentUser && (currentUser.role === 'manager' || currentUser.role === 'staff');
-  const approvalCount = tasks.filter((task) => task.st === 'review').length;
 
   useEffect(() => {
     if (!toastText) return;
@@ -99,7 +95,6 @@ export default function useAppController() {
       return [...newNotifs, ...prev];
     });
   }, [currentUser, tasks]);
-  const toggleTaskPool = (taskId: number) => setTasks((prev: Task[]) => prev.map((task: Task) => task.id === taskId ? { ...task, inPool: !task.inPool } : task));
   const updateBusinessInfo = (updater: (prev: BusinessInfo) => BusinessInfo) => setBusinessInfo(updater);
   const resetBusinessInfo = () => setBusinessInfo(BUSINESS_INFO_INITIAL);
 
@@ -157,11 +152,11 @@ export default function useAppController() {
 
   const todayIso = new Date().toISOString().slice(0, 10);
 
-  const dashboardStats = (shiftsParam: Shift[], tasksParam: Task[], currentUserParam: User | null, isMgrParam: boolean, approvalCountParam: number) => {
+  const dashboardStats = (shiftsParam: Shift[], tasksParam: Task[], currentUserParam: User | null, isMgrParam: boolean) => {
     const todShifts = shiftsParam.filter((shift) => shift.date === todayIso && shift.st === 'confirmed');
     const myTasks = currentUserParam ? tasksParam.filter((task) => task.to === currentUserParam.id && task.st !== 'done') : [];
 
-    return { todShifts, myTasks, approvalCountParam };
+    return { todShifts, myTasks };
   };
 
   const renderTodayShifts = (shiftsParam: Shift[], usersParam: User[], currentUserParam: User | null) => {
@@ -275,8 +270,6 @@ export default function useAppController() {
     if (task) addNotification('タスク完了報があります', `「${task.name}」の完了報告が届いています`, 1, id);
   };
   
-  const openAssignModal = (taskId:number, usersParam:User[], setAssignTaskIdFn:(n:number|null)=>void, setAssignUidFn:(n:number)=>void, setModalFn:(m:any)=>void) => { const partUser=usersParam.find((u)=>u.role==='part'); setAssignTaskIdFn(taskId); setAssignUidFn(partUser?.id??1); setModalFn('modal-assign'); };
-  const handleAssignSubmit = (assignTaskIdParam:number|null, assignUidParam:number, setTasksFn:(fn:any)=>void, setModalFn:(m:any)=>void, usersParam:User[], toastFn:(m:string)=>void) => { if (!assignTaskIdParam) return; setTasksFn((prev:any)=>prev.map((task:any)=>task.id===assignTaskIdParam?{...task,to:assignUidParam,st:'in_progress'}:task)); const assignedUser = usersParam.find((u)=>u.id===assignUidParam); setModalFn(null); toastFn(`${assignedUser?.name ?? 'スタッフ'}に割り当てました`); };
   const handleTaskDelete = (id:number, setTasksFn:(fn:any)=>void, toastFn:(m:string)=>void) => { setTasksFn((prev:any)=>prev.filter((task:any)=>task.id!==id)); toastFn('削除しました'); };
   const handleTaskCreateSubmit = (ctNameParam:string, ctDescParam:string, ctPriParam:Priority, ctXpParam:number, currentUserParam:User | null, setTasksFn:(fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => { if (!ctNameParam.trim()){ toastFn('タスク名を入力してください'); return; } if (!currentUserParam) return; setTasksFn((prev:any)=>[...prev,{id:Date.now(),name:ctNameParam.trim(),desc:ctDescParam.trim(),pri:ctPriParam,xp:ctXpParam,st:'pending',to:null,by:currentUserParam.id,inPool:true}]); setModalFn(null); toastFn('タスクを追加しました'); };
 
@@ -328,8 +321,6 @@ export default function useAppController() {
     setModalFn(null); toastFn('スタッフを追加しました');
   };
 
-  const approvalTasks = tasks.filter((task)=>task.st==='review');
-
   const staffStats = (usersParam:User[]) => {
     const total = usersParam.length;
     const partCount = usersParam.filter((user)=>user.role==='part').length;
@@ -342,15 +333,15 @@ export default function useAppController() {
     users, setUsers, shifts, setShifts, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, gachaLock, setGachaLock,
-    notificationOpen, setNotificationOpen, notifications, setNotifications, unreadCount, toggleNotif, readNotif, clearNotifs, handleNotificationAction, toggleTaskPool,
+    notificationOpen, setNotificationOpen, notifications, setNotifications, unreadCount, toggleNotif, readNotif, clearNotifs, handleNotificationAction,
     reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
-    asName, setAsName, asRole, setAsRole, assignTaskId, setAssignTaskId, assignUid, setAssignUid,
-    toast, handleLogin, logout, handleNav, isMgr, isStf, approvalCount,
-    availableUsers, activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
+    asName, setAsName, asRole, setAsRole,
+    toast, handleLogin, logout, handleNav, isMgr, isStf,
+    activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
-    handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
-    handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, approvalTasks, staffStats,
+    handleTaskStart, handleRequestDone, handleTaskDelete, handleTaskCreateSubmit,
+    handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, staffStats,
   } as const;
 }

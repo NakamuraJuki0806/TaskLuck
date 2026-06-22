@@ -96,13 +96,10 @@ export function BusinessInfoView({ isActive, businessInfo, updateBusinessInfo, r
       <div className="store-toolbar">
         <div className="store-toolbar-left">
           <h1>店舗設定</h1>
-          <button className="store-btn disabled" type="button" disabled>保存</button>
-          <button className="store-btn" type="button" onClick={cancelSettings}>キャンセル</button>
         </div>
         <div className="store-toolbar-right">
-          <button className="store-btn" type="button" onClick={addSpecialRule}>保存を追加</button>
+          <button className="store-btn" type="button" onClick={cancelSettings}>キャンセル</button>
           <button className="store-btn store-btn-green" type="button" onClick={saveSettings}><StoreIcon type="save" />保存</button>
-          <button className="store-btn disabled" type="button" disabled>キャンセル</button>
         </div>
       </div>
 

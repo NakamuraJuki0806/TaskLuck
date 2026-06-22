@@ -5,7 +5,7 @@ type DashboardViewProps = {
   isActive: boolean;
   isMgr: boolean;
   currentUser: User;
-  dsObj: { todShifts: Shift[]; myTasks: Task[]; approvalCountParam: number };
+  dsObj: { todShifts: Shift[]; myTasks: Task[] };
   tasks: Task[];
   todayShifts: Array<{ shift: Shift; user: User | { name: string; ini: string }; isMine: boolean }> | null;
   dashTasks: Task[] | null;
