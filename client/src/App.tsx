@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import './App.css';
 import { Role, Priority, TaskStatus, User, Shift, Task, Notification } from './models';
 import useAppController from './controllers/useAppController';
-import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, StaffView, NotificationPanel } from './views/Views';
+import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, BusinessInfoView, StaffView, NotificationPanel } from './views';
 import GachaSettings from './views/GachaSettings';
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -54,16 +54,16 @@ const ICONS: Record<string, React.JSX.Element> = {
 export default function App() {
   const controller = useAppController();
   const {
-    selectedRole, setSelectedRole, loginUserId, setLoginUserId, currentUser, setCurrentUser,
-    users, setUsers, shifts, setShifts, tasks, setTasks, gLog, setGLog,
+    loginUserId, setLoginUserId, currentUser, setCurrentUser,
+    users, setUsers, shifts, setShifts, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
-    toastText, setToastText, gachaLabel, setGachaLabel, gachaLock, setGachaLock,
+    toastText, gachaLock, setGachaLock,
     gachaEnabled, toggleGachaEnabled, toggleTaskPool, notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs,
     reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
     asName, setAsName, asRole, setAsRole, assignTaskId, setAssignTaskId, assignUid, setAssignUid,
-    toast, handleLogin, logout, handleNav, userOptions, isMgr, isStf, approvalCount,
+    toast, handleLogin, logout, handleNav, isMgr, isStf, approvalCount,
     availableUsers, activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
     handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
@@ -118,11 +118,8 @@ export default function App() {
     <>
       {!currentUser ? (
         <AuthView
-          selectedRole={selectedRole}
-          onSelectRole={(role) => { setSelectedRole(role); setLoginUserId(''); }}
           loginUserId={loginUserId}
           setLoginUserId={setLoginUserId}
-          userOptions={userOptions}
           handleLogin={handleLogin}
         />
       ) : (
@@ -215,9 +212,8 @@ export default function App() {
               />
               <GachaView
                 isActive={activePage === 'gacha'}
-                gachaLabel={gachaLabel}
                 gLog={gLog}
-                handleGacha={() => handleGacha(tasks, currentUser, setTasks, setGachaLabel, setGLog, toast, setGachaLock)}
+                handleGacha={() => handleGacha(tasks, currentUser, setTasks, setGLog, toast, setGachaLock)}
                 handleCompleteGachaTask={() => handleCompleteGachaTask(setTasks, toast, gachaTaskVal)}
                 gachaTaskVal={gachaTaskVal}
                 gachaLock={gachaLock}
@@ -239,6 +235,13 @@ export default function App() {
                 users={users}
                 priorityBadge={priorityBadge}
                 handleApproval={(id, approved) => handleApproval(id, approved, setTasks, tasks, setUsers, toast)}
+              />
+              <BusinessInfoView
+                isActive={activePage === 'business-info'}
+                businessInfo={businessInfo}
+                updateBusinessInfo={updateBusinessInfo}
+                resetBusinessInfo={resetBusinessInfo}
+                toast={toast}
               />
               <StaffView
                 isActive={activePage === 'staff'}
