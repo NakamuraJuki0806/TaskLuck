@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Role, Priority, TaskStatus, User, Shift, ShiftPattern, Task, GachaLog, Notification, USERS_INITIAL, SHIFTS_INITIAL, SHIFT_PATTERNS_INITIAL, TASKS_INITIAL } from '../models';
+import { Role, Priority, TaskStatus, User, Shift, ShiftPattern, Task, GachaLog, Notification, BusinessInfo, USERS_INITIAL, SHIFTS_INITIAL, SHIFT_PATTERNS_INITIAL, TASKS_INITIAL, BUSINESS_INFO_INITIAL } from '../models';
 
 export default function useAppController() {
-  const [selectedRole, setSelectedRole] = useState<'staff' | 'part'>('staff');
   const [loginUserId, setLoginUserId] = useState<number | ''>('');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(USERS_INITIAL);
@@ -21,19 +20,17 @@ export default function useAppController() {
     });
   };
   const [tasks, setTasks] = useState<Task[]>(TASKS_INITIAL);
+  const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(BUSINESS_INFO_INITIAL);
   const [gLog, setGLog] = useState<GachaLog[]>([]);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [gachaEnabled, setGachaEnabled] = useState(true);
-  const [speedMode, setSpeedMode] = useState<'normal' | 'fast' | 'skip'>('normal');
   const [cy, setCy] = useState(2025);
   const [cm, setCm] = useState(5);
   const [tFilter, setTFilter] = useState<TaskStatus | 'all'>('all');
-  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'shift-request' | 'task' | 'gacha' | 'approval' | 'gacha-settings' | 'staff' | 'notifications'>('dashboard');
+  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'shift-request' | 'task' | 'gacha' | 'approval' | 'gacha-settings' | 'business-info' | 'staff' | 'notifications'>('dashboard');
   const [modal, setModal] = useState<string | null>(null);
   const [toastText, setToastText] = useState('');
-  const [gachaLabel, setGachaLabel] = useState('タスクを引いてみよう…');
-  const [gachaResult, setGachaResult] = useState<Task | null>(null);
   const [gachaLock, setGachaLock] = useState(false);
   const [reqDate, setReqDate] = useState(new Date().toISOString().slice(0,10));
   const [reqStart, setReqStart] = useState('09:00');
@@ -52,15 +49,6 @@ export default function useAppController() {
   const [asRole, setAsRole] = useState<Role>('part');
   const [assignTaskId, setAssignTaskId] = useState<number | null>(null);
   const [assignUid, setAssignUid] = useState<number>(USERS_INITIAL.find((u) => u.role === 'part')?.id ?? 1);
-  const toastTimer = useRef<number | null>(null);
-  const gachaInterval = useRef<number | null>(null);
-  const gachaTimeout = useRef<number | null>(null);
-
-  const userOptions = useMemo(() => (
-    selectedRole === 'staff'
-      ? users.filter((user) => user.role !== 'part')
-      : users.filter((user) => user.role === 'part')
-  ), [selectedRole, users]);
 
   const isMgr = currentUser?.role === 'manager';
   const isStf = currentUser && (currentUser.role === 'manager' || currentUser.role === 'staff');
@@ -68,17 +56,15 @@ export default function useAppController() {
 
   useEffect(() => {
     if (!toastText) return;
-    if (toastTimer.current) window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToastText(''), 2600);
+    const timer = window.setTimeout(() => setToastText(''), 2600);
     return () => {
-      if (toastTimer.current) window.clearTimeout(toastTimer.current);
+      window.clearTimeout(timer);
     };
   }, [toastText]);
 
   useEffect(() => {
     return () => {
-      if (gachaInterval.current) window.clearInterval(gachaInterval.current);
-      if (gachaTimeout.current) window.clearTimeout(gachaTimeout.current);
+      setToastText('');
     };
   }, []);
 
@@ -95,6 +81,8 @@ export default function useAppController() {
   };
   const toggleGachaEnabled = () => setGachaEnabled((prev: boolean) => !prev);
   const toggleTaskPool = (taskId: number) => setTasks((prev: Task[]) => prev.map((task: Task) => task.id === taskId ? { ...task, inPool: !task.inPool } : task));
+  const updateBusinessInfo = (updater: (prev: BusinessInfo) => BusinessInfo) => setBusinessInfo(updater);
+  const resetBusinessInfo = () => setBusinessInfo(BUSINESS_INFO_INITIAL);
 
   const addNotification = (title: string, sub: string, uid: number) => {
     setNotifications((prev: Notification[]) => [{ id: Date.now(), title, sub, read: false, uid }, ...prev]);
@@ -120,10 +108,7 @@ export default function useAppController() {
     setCurrentUser(null);
     setActivePage('dashboard');
     setLoginUserId('');
-    setSelectedRole('staff');
     setNotificationOpen(false);
-    setGachaLabel('タスクを引いてみよう…');
-    setGachaResult(null);
     setGachaLock(false);
   };
 
@@ -142,6 +127,7 @@ export default function useAppController() {
     { id: 'gacha', lbl: '闇鍋ガチャ', ic: 'dice', partOnly: true },
     { id: 'approval', lbl: '完了承認', ic: 'shield', mgrOnly: true },
     { id: 'gacha-settings', lbl: 'ガチャ設定', ic: 'settings', mgrOnly: true },
+    { id: 'business-info', lbl: '店舗設定', ic: 'settings', mgrOnly: true },
     { id: 'staff', lbl: 'スタッフ管理', ic: 'users', mgrOnly: true },
     { id: 'notifications', lbl: '通知', ic: 'bell' },
   ].filter((item) => {
@@ -178,7 +164,7 @@ export default function useAppController() {
     return showT;
   };
 
-  const renderCalendar = (cyState: number, cmState: number, shiftsParam: Shift[], usersParam: User[], currentUserParam: User | null) => {
+  const renderCalendar = (cyState: number, cmState: number, shiftsParam: Shift[], currentUserParam: User | null) => {
     const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
     const firstDay = new Date(cyState, cmState, 1).getDay();
     const daysInMonth = new Date(cyState, cmState + 1, 0).getDate();
@@ -228,7 +214,7 @@ export default function useAppController() {
     return list;
   };
 
-  const gachaTask = (tasksParam: Task[], currentUserParam: User | null) => tasksParam.find((task) => task.to === currentUserParam?.id && task.st !== 'done');
+  const gachaTask = (tasksParam: Task[], currentUserParam: User | null) => tasksParam.find((task) => task.to === currentUserParam?.id && task.st === 'in_progress');
 
   const handleShiftRequestSubmit = (currentUserParam: User | null, date: string, s: string, e: string, setShiftsFn: (fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => {
     if (!date||!s||!e){toastFn('日付と時間を入力してください');return;}
@@ -274,68 +260,32 @@ export default function useAppController() {
   const handleTaskDelete = (id:number, setTasksFn:(fn:any)=>void, toastFn:(m:string)=>void) => { setTasksFn((prev:any)=>prev.filter((task:any)=>task.id!==id)); toastFn('削除しました'); };
   const handleTaskCreateSubmit = (ctNameParam:string, ctDescParam:string, ctPriParam:Priority, ctXpParam:number, currentUserParam:User | null, setTasksFn:(fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => { if (!ctNameParam.trim()){ toastFn('タスク名を入力してください'); return; } if (!currentUserParam) return; setTasksFn((prev:any)=>[...prev,{id:Date.now(),name:ctNameParam.trim(),desc:ctDescParam.trim(),pri:ctPriParam,xp:ctXpParam,st:'pending',to:null,by:currentUserParam.id,inPool:true}]); setModalFn(null); toastFn('タスクを追加しました'); };
 
-  const finalizeGachaDraw = (chosen: Task, currentUserParam: User, rkey: string, rarityLabel: string, setTasksFn:(fn:any)=>void, setGachaLabelFn:(s:string)=>void, setGachaResultFn:(t:Task|null)=>void, setGLogFn:(fn:any)=>void, toastFn:(m:string)=>void, setGachaLockFn:(b:boolean)=>void) => {
+  const finalizeGachaDraw = (chosen: Task, currentUserParam: User, rkey: string, rarityLabel: string, setTasksFn:(fn:any)=>void, setGLogFn:(fn:any)=>void, toastFn:(m:string)=>void, setGachaLockFn:(b:boolean)=>void) => {
     setTasksFn((prev:any) => prev.map((task:any) => task.id === chosen.id ? { ...task, st: 'in_progress', to: currentUserParam.id } : task));
-    setGachaLabelFn(chosen.name);
-    setGachaResultFn({ ...chosen, to: currentUserParam.id, st: 'in_progress' });
     setGLogFn((prev:any) => [...prev, { name: chosen.name, xp: chosen.xp, timestamp: Date.now(), rarity: rarityLabel, rkey, time: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) }]);
     toastFn(`「${chosen.name}」が当たりました`);
     setGachaLockFn(false);
   };
 
-  const skipGacha = () => {
-    if (!gachaLock) return;
-    if (gachaInterval.current) window.clearInterval(gachaInterval.current);
-    if (gachaTimeout.current) window.clearTimeout(gachaTimeout.current);
-    gachaInterval.current = null;
-    gachaTimeout.current = null;
-    if (!currentUser) {
-      setGachaLock(false);
-      return;
-    }
-    const avail = tasks.filter((task) => task.st === 'pending' && !task.to && task.inPool);
-    if (!avail.length) {
-      setGachaLock(false);
-      toast('引けるタスクがありません');
-      return;
-    }
-    const rk = pickRarity();
-    const rc = RARITY[rk];
-    const chosen = avail[Math.floor(Math.random() * avail.length)];
-    finalizeGachaDraw(chosen, currentUser, rk.toLowerCase(), rc.label, setTasks, setGachaLabel, setGachaResult, setGLog, toast, setGachaLock);
-  };
 
-  const handleGacha = (tasksParam:Task[], currentUserParam:User | null, setTasksFn:(fn:any)=>void, setGachaLabelFn:(s:string)=>void, setGachaResultFn:(t:Task|null)=>void, setGLogFn:(fn:any)=>void, toastFn:(m:string)=>void, setGachaLockFn:(b:boolean)=>void, gachaIntervalRef:any, gachaTimeoutRef:any) => {
+  const handleGacha = (tasksParam:Task[], currentUserParam:User | null, setTasksFn:(fn:any)=>void, setGLogFn:(fn:any)=>void, toastFn:(m:string)=>void, setGachaLockFn:(b:boolean)=>void) => {
     const avail = tasksParam.filter((task)=>task.st==='pending'&& !task.to);
     if (!avail.length){ toastFn('引けるタスクがありません'); return; }
     if (!currentUserParam) return;
     setGachaLockFn(true);
-    setGachaResultFn(null);
-    const pool = [...avail.map((task)=>task.name),'？？？','ランダム選出中…','🎲 運命のタスク'];
-    let pointer=0;
-    if (gachaIntervalRef.current) window.clearInterval(gachaIntervalRef.current);
-    // animation interval and timeout depend on speedMode state
-    const interval = speedMode === 'fast' ? 60 : 140;
-    const timeout = speedMode === 'fast' ? 800 : 2200;
-    if (gachaTimeoutRef.current) window.clearTimeout(gachaTimeoutRef.current);
-
     const rk = pickRarity();
     const rc = RARITY[rk];
+    const chosen = avail[Math.floor(Math.random() * avail.length)];
+    finalizeGachaDraw(chosen, currentUserParam, rk.toLowerCase(), rc.label, setTasksFn, setGLogFn, toastFn, setGachaLockFn);
+  };
 
-    if (speedMode === 'skip') {
-      const chosen = avail[Math.floor(Math.random() * avail.length)];
-      finalizeGachaDraw(chosen, currentUserParam, rk.toLowerCase(), rc.label, setTasksFn, setGachaLabelFn, setGachaResultFn, setGLogFn, toastFn, setGachaLockFn);
+  const handleCompleteGachaTask = (setTasksFn:(fn:any)=>void, toastFn:(m:string)=>void, currentTask?: Task) => {
+    if (!currentTask) {
+      toastFn('完了するタスクがありません');
       return;
     }
-
-    gachaIntervalRef.current = window.setInterval(()=>{ setGachaLabelFn(pool[pointer%pool.length]); pointer+=1; }, interval);
-
-    gachaTimeoutRef.current = window.setTimeout(() => {
-      if (gachaIntervalRef.current) window.clearInterval(gachaIntervalRef.current);
-      gachaIntervalRef.current = null;
-      const chosen = avail[Math.floor(Math.random() * avail.length)];
-      finalizeGachaDraw(chosen, currentUserParam, rk.toLowerCase(), rc.label, setTasksFn, setGachaLabelFn, setGachaResultFn, setGLogFn, toastFn, setGachaLockFn);
-    }, timeout);
+    setTasksFn((prev:any) => prev.map((task:any) => task.id === currentTask.id ? { ...task, st: 'review' } : task));
+    toastFn('タスクを完了しました');
   };
 
   const handleApproval = (id:number, approved:boolean, setTasksFn:(fn:any)=>void, tasksParam:Task[], setUsersFn:(fn:any)=>void, toastFn:(m:string)=>void) => {
@@ -366,20 +316,19 @@ export default function useAppController() {
   };
 
   return {
-    selectedRole, setSelectedRole, loginUserId, setLoginUserId, currentUser, setCurrentUser,
-    users, setUsers, shifts, setShifts, shiftPatterns, setShiftPatterns, tasks, setTasks, gLog, setGLog,
+    loginUserId, setLoginUserId, currentUser, setCurrentUser,
+    users, setUsers, shifts, setShifts, shiftPatterns, setShiftPatterns, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
-    toastText, setToastText, gachaLabel, setGachaLabel, gachaResult, setGachaResult, gachaLock, setGachaLock,
-    gachaEnabled, setGachaEnabled, speedMode, setSpeedMode, notificationOpen, setNotificationOpen, notifications, setNotifications, unreadCount, toggleNotif, readNotif, clearNotifs, toggleGachaEnabled, toggleTaskPool,
+    toastText, gachaLock, setGachaLock,
+    gachaEnabled, setGachaEnabled, notificationOpen, setNotificationOpen, notifications, setNotifications, unreadCount, toggleNotif, readNotif, clearNotifs, toggleGachaEnabled, toggleTaskPool,
     reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
     asName, setAsName, asRole, setAsRole, assignTaskId, setAssignTaskId, assignUid, setAssignUid,
-    toast, handleLogin, logout, handleNav, userOptions, isMgr, isStf, approvalCount,
+    toast, handleLogin, logout, handleNav, isMgr, isStf, approvalCount,
     availableUsers, activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
     handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
-    handleGacha, skipGacha, handleApproval, handleStaffCreate, approvalTasks, staffStats,
-    toastTimer, gachaInterval, gachaTimeout,
+    handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, approvalTasks, staffStats,
   } as const;
 }

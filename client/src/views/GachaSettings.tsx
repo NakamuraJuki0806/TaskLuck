@@ -4,9 +4,7 @@ import { Task } from '../models';
 interface GachaSettingsProps {
   tasks: Task[];
   gachaEnabled: boolean;
-  speedMode: 'normal' | 'fast' | 'skip';
   onToggleEnabled: (enabled: boolean) => void;
-  onSpeedModeChange: (mode: 'normal' | 'fast' | 'skip') => void;
   onTogglePool: (taskId: number) => void;
 }
 
@@ -19,9 +17,7 @@ const PRIORITY_LABELS: Record<string, { label: string; color: string }> = {
 export default function GachaSettings({
   tasks,
   gachaEnabled,
-  speedMode,
   onToggleEnabled,
-  onSpeedModeChange,
   onTogglePool,
 }: GachaSettingsProps) {
   const poolTasks = tasks.filter(t => t.inPool);
@@ -47,28 +43,6 @@ export default function GachaSettings({
               }`}
             />
           </button>
-        </div>
-      </div>
-
-      {/* スピードモード設定 */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">アニメーション速度</h3>
-        <div className="flex gap-3">
-          {(['normal', 'fast', 'skip'] as const).map(mode => (
-            <button
-              key={mode}
-              onClick={() => onSpeedModeChange(mode)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                speedMode === mode
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {mode === 'normal' && '標準'}
-              {mode === 'fast' && '高速'}
-              {mode === 'skip' && 'スキップ'}
-            </button>
-          ))}
         </div>
       </div>
 

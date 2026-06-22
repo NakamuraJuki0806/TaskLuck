@@ -1,163 +1,95 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Task } from '../models';
-import { useGachaController, RarityKey, GachaResult } from '../controllers/useGachaController';
-import GachaOverlay from './GachaOverlay';
-import GachaIdle from './GachaIdle';
-import GachaHistory from './GachaHistory';
-import TaskPool from './TaskPool';
+import { type ReactNode } from 'react';
+import { GachaLog, Task } from '../models';
 
-interface GachaViewProps {
-  tasks: Task[];
-  onTaskComplete: (taskId: number, xp: number) => Promise<void>;
-  onTaskStatusChange: (taskId: number, status: string) => void;
-}
+type GachaViewProps = {
+  isActive: boolean;
+  gLog: GachaLog[];
+  handleGacha: () => void;
+  handleCompleteGachaTask: () => void;
+  gachaTaskVal: Task | undefined;
+  gachaLock: boolean;
+  gachaEnabled?: boolean;
+};
 
-export default function GachaView({
-  tasks,
-  onTaskComplete,
-  onTaskStatusChange,
-}: GachaViewProps) {
-  const [speedMode, setSpeedMode] = useState<'normal' | 'fast' | 'skip'>('normal');
-  const [showOverlay, setShowOverlay] = useState(false);
-  const [gachaResult, setGachaResult] = useState<GachaResult | null>(null);
-  const [poolTasks, setPoolTasks] = useState<Task[]>([]);
-  const [activeTab, setActiveTab] = useState<'idle' | 'pool' | 'history'>('idle');
-  const [totalXp, setTotalXp] = useState(0);
-
-  const {
-    pullCount,
-    gachaHistory,
-    currentTask,
-    isLoading,
-    pullGacha,
-    completeTask,
-    setCurrentTask,
-    fetchHistory,
-  } = useGachaController();
-
-  // プール内のタスクを更新
-  useEffect(() => {
-    const available = tasks.filter(t => t.st === 'pending' && t.inPool);
-    setPoolTasks(available);
-  }, [tasks]);
-
-  // ガチャを実行
-  const handlePullGacha = async () => {
-    if (poolTasks.length === 0) {
-      alert('プール内にタスクがありません');
-      return;
-    }
-
-    try {
-      const result = await pullGacha(poolTasks);
-      setGachaResult(result);
-      setShowOverlay(true);
-    } catch (error) {
-      alert('ガチャ実行に失敗しました');
-      console.error(error);
-    }
-  };
-
-  // タスク完了
-  const handleCompleteTask = async () => {
-    if (!currentTask) return;
-
-    try {
-      const result = gachaResult || { xp: currentTask.xp };
-      await completeTask(currentTask, result.xp);
-      await onTaskComplete(currentTask.id, result.xp);
-      setCurrentTask(null);
-      setGachaResult(null);
-    } catch (error) {
-      alert('タスク完了に失敗しました');
-    }
-  };
-
-  // タスクをプールに追加/除外
-  const handleTogglePool = (taskId: number) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (task && currentTask?.id !== taskId) {
-      const newInPool = !task.inPool;
-      // 親コンポーネントで処理
-      onTaskStatusChange(taskId, `${newInPool ? 'pool_add' : 'pool_remove'}`);
-    }
-  };
+export function GachaView({ isActive, gLog, handleGacha, handleCompleteGachaTask, gachaTaskVal, gachaLock, gachaEnabled = true }: GachaViewProps) {
+  const pullTotal = gLog.length;
+  const pullLast = gLog.length ? gLog[gLog.length - 1].rarity ?? gLog[gLog.length - 1].name : '—';
 
   return (
-    <div className="space-y-4">
-      {/* ガチャオーバーレイ */}
-      {showOverlay && gachaResult && (
-        <GachaOverlay
-          result={gachaResult}
-          speedMode={speedMode}
-          onClose={() => setShowOverlay(false)}
-        />
-      )}
-
-      {/* タブナビゲーション */}
-      <div className="flex gap-2 border-b border-gray-200 px-4">
-        <button
-          onClick={() => setActiveTab('idle')}
-          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'idle'
-              ? 'border-purple-500 text-purple-600'
-              : 'border-transparent text-gray-600'
-          }`}
-        >
-          ガチャ
-        </button>
-        <button
-          onClick={() => setActiveTab('pool')}
-          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'pool'
-              ? 'border-purple-500 text-purple-600'
-              : 'border-transparent text-gray-600'
-          }`}
-        >
-          プール管理
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('history');
-            fetchHistory();
-          }}
-          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'history'
-              ? 'border-purple-500 text-purple-600'
-              : 'border-transparent text-gray-600'
-          }`}
-        >
-          履歴
-        </button>
-      </div>
-
-      <div className="px-4">
-        {/* ガチャアイドル画面 */}
-        {activeTab === 'idle' && (
-          <GachaIdle
-            currentTask={currentTask}
-            pullCount={pullCount}
-            isLoading={isLoading}
-            speedMode={speedMode}
-            onPullGacha={handlePullGacha}
-            onCompleteTask={handleCompleteTask}
-            onSpeedModeChange={setSpeedMode}
-            lastRarity={gachaHistory[0]?.rarity || '—'}
-          />
-        )}
-
-        {/* プール管理 */}
-        {activeTab === 'pool' && (
-          <TaskPool
-            tasks={poolTasks}
-            currentTaskId={currentTask?.id}
-            onTogglePool={handleTogglePool}
-          />
-        )}
-
-        {/* ガチャ履歴 */}
-        {activeTab === 'history' && (
-          <GachaHistory history={gachaHistory} />
+    <div className={`page ${isActive ? 'show' : ''}`} id="pg-gacha">
+      <div className="ph"><div><div className="pt">闇鍋ガチャ</div><div className="ps">ランダムにタスクが割り当てられます</div></div></div>
+      <div className="w-full max-w-2xl mx-auto px-4 py-6 space-y-4">
+        <div className="bg-white rounded-lg p-8 text-center border border-gray-200">
+          {gachaTaskVal ? (
+            <div>
+              <div className="mb-6">
+                <div className="inline-block bg-purple-50 border border-purple-200 rounded-full px-4 py-2 mb-4">
+                  <span className="text-sm text-purple-600">
+                    対応中
+                  </span>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold mb-3">{gachaTaskVal.name}</h2>
+              <p className="text-gray-600 text-sm mb-6">{gachaTaskVal.desc}</p>
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <div className="text-xs text-gray-500 mb-1">予定XP</div>
+                <div className="text-3xl font-bold text-purple-600">+{gachaTaskVal.xp || 0} XP</div>
+              </div>
+              <button
+                onClick={handleCompleteGachaTask}
+                className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={gachaLock}
+              >
+                タスク完了
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div className="text-6xl mb-4">🍲</div>
+              <h2 className="text-2xl font-bold mb-2">闇鍋ガチャ</h2>
+              <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                タスクから何が飛び出すかは運次第...
+                <br />
+                ガチャを回してタスクを引き当てよう！
+              </p>
+              <div className="bg-purple-50 border border-purple-200 rounded-full px-4 py-2 inline-flex items-center gap-2 mb-6">
+                <span className="text-sm text-gray-600">
+                  総回数: <span className="font-bold text-purple-600">{pullTotal}</span>
+                </span>
+              </div>
+              <div className="mb-6">
+                <div className="text-xs text-gray-500 mb-2">最後の結果</div>
+                <div className="text-lg font-bold text-purple-600">{pullLast}</div>
+              </div>
+              <button
+                onClick={handleGacha}
+                disabled={gachaLock || !gachaEnabled}
+                className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-12 py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {gachaLock ? '処理中...' : 'ガチャを回す'}
+              </button>
+            </div>
+          )}
+        </div>
+        {gLog.length > 0 && (
+          <div className="bg-white rounded-lg border border-gray-200">
+            <div className="p-4 border-b border-gray-200">
+              <h3 className="font-semibold text-gray-900">ガチャ履歴</h3>
+              <p className="text-xs text-gray-500 mt-1">{gLog.length}件</p>
+            </div>
+            <div className="divide-y divide-gray-200">
+              {gLog.slice().reverse().slice(0, 8).map((entry, index) => (
+                <div key={`${entry.name}-${index}`} className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors">
+                  <div className="w-1 h-12 bg-purple-100 rounded-full flex-shrink-0"></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900">{entry.name}</div>
+                    <p className="text-xs text-gray-500">{entry.rarity ?? 'NORMAL'} · {entry.time ?? ''}</p>
+                  </div>
+                  <div className="text-lg font-bold text-purple-600">+{entry.xp} XP</div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>
