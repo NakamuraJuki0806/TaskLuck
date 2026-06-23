@@ -1,8 +1,8 @@
 *{box-sizing:border-box;margin:0;padding:0}
 
 /* LOGIN */
-#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f5f7}
-.login-box{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:36px 32px;width:340px}
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f5f7;width:100%}
+.login-box{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:36px 32px;width:90%;max-width:420px}
 .login-logo{display:flex;align-items:center;gap:8px;margin-bottom:28px}
 .login-logo-icon{width:32px;height:32px;background:#1a1a1a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px}
 .login-logo-name{font-size:18px;font-weight:600;letter-spacing:-0.03em}
@@ -19,9 +19,9 @@
 .hint{font-size:11px;color:#aaa;text-align:center;margin-top:12px}
 
 /* APP */
-#app{min-height:100vh}
-.layout{display:flex;min-height:100vh}
-.sidebar{width:200px;background:#fff;border-right:1px solid #e5e5e5;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+#app{min-height:100vh;width:100%}
+.layout{display:flex;min-height:100vh;width:100%}
+.sidebar{width:20%;min-width:180px;max-width:240px;background:#fff;border-right:1px solid #e5e5e5;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
 .sb-top{padding:16px 14px 12px}
 .sb-logo{display:flex;align-items:center;gap:7px;margin-bottom:16px}
 .sb-logo-icon{width:26px;height:26px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px}
@@ -43,8 +43,8 @@ nav{flex:1;padding:8px 8px}
 .btn-logout:hover{color:#555}
 
 /* MAIN */
-main{flex:1;min-width:0;overflow-y:auto}
-.page{display:none;padding:28px 32px;max-width:1000px}
+main{flex:1;min-width:0;overflow-y:auto;width:100%}
+.page{display:none;padding:28px 4%;max-width:100%;width:100%}
 .page.show{display:block}
 .ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap}
 .pt{font-size:30px;font-weight:600;letter-spacing:-0.03em}
