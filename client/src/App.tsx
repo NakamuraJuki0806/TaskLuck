@@ -2,9 +2,8 @@ import { useMemo } from 'react';
 import './App.css';
 import { Role, Priority, TaskStatus, User, Shift, ShiftPattern, Task, Notification } from './models';
 import useAppController from './controllers/useAppController';
-import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, BusinessInfoView, StaffView, NotificationPanel } from './views';
-import ShiftRequestScreen, { ShiftRequestEntry } from './views/ShiftRequestScreen';
-import GachaSettings from './views/GachaSettings';
+import { AuthView, DashboardView, ShiftView, TaskView, GachaView, BusinessInfoView, StaffView, NotificationPanel } from './views';
+import ShiftRequestScreen from './views/ShiftRequestScreen';
 
 const ROLE_LABELS: Record<Role, string> = {
   manager: '店長',
@@ -59,19 +58,19 @@ export default function App() {
     users, setUsers, shifts, setShifts, shiftPatterns, setShiftPatterns, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, gachaLock, setGachaLock,
-    gachaEnabled, toggleGachaEnabled, toggleTaskPool, notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs,
+    notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs, handleNotificationAction,
     reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
-    asName, setAsName, asRole, setAsRole, assignTaskId, setAssignTaskId, assignUid, setAssignUid,
-    toast, handleLogin, logout, handleNav, isMgr, isStf, approvalCount,
-    availableUsers, activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
+    asName, setAsName, asRole, setAsRole,
+    toast, handleLogin, logout, handleNav, isMgr, isStf,
+    activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
-    handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
-    handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, approvalTasks, staffStats,
+    handleTaskStart, handleRequestDone, handleTaskDelete, handleTaskCreateSubmit,
+    handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, staffStats,
   } = controller;
 
-  const dsObj = useMemo(() => dashboardStats(shifts, tasks, currentUser, isMgr, approvalCount), [shifts, tasks, currentUser, isMgr, approvalCount]);
+  const dsObj = useMemo(() => dashboardStats(shifts, tasks, currentUser, isMgr), [shifts, tasks, currentUser, isMgr]);
   const todayShifts = useMemo(() => renderTodayShifts(shifts, users, currentUser), [shifts, users, currentUser]);
   const dashTasks = useMemo(() => dashboardTasks(tasks, currentUser, isMgr), [tasks, currentUser, isMgr]);
   const cal = useMemo(() => renderCalendar(cy, cm, shifts, currentUser), [cy, cm, shifts, currentUser]);
@@ -88,8 +87,14 @@ export default function App() {
     if (isMgr) {
       return (
         <>
-          {!task.to ? <button className="btn btn-sm" type="button" onClick={() => openAssignModal(task.id, users, setAssignTaskId, setAssignUid, setModal)}>割当</button> : null}
-          <button className="btn btn-sm btn-danger" type="button" onClick={() => handleTaskDelete(task.id, setTasks, toast)}>削除</button>
+          {task.st === 'review' ? (
+            <>
+              <button className="btn btn-sm" type="button" style={{ color: '#15803d', borderColor: '#bbf7d0' }} onClick={() => handleApproval(task.id, true, setTasks, tasks, setUsers, toast)}>承認</button>
+              <button className="btn btn-sm btn-danger" type="button" onClick={() => handleApproval(task.id, false, setTasks, tasks, setUsers, toast)}>却下</button>
+            </>
+          ) : (
+            <button className="btn btn-sm btn-danger" type="button" onClick={() => handleTaskDelete(task.id, setTasks, toast)}>削除</button>
+          )}
         </>
       );
     }
@@ -149,7 +154,6 @@ export default function App() {
                     onClick={() => item.id === 'notifications' ? toggleNotif() : handleNav(item.id as typeof activePage)}
                   >
                     {ICONS[item.ic]}<span>{item.lbl}</span>
-                    {item.id === 'approval' && approvalCount > 0 ? <span className="ni-badge">{approvalCount}</span> : null}
                     {item.id === 'notifications' && unreadCount > 0 ? <span className="ni-badge">{unreadCount}</span> : null}
                   </button>
                 ))}
@@ -169,6 +173,7 @@ export default function App() {
                 currentUser={currentUser}
                 dsObj={dsObj}
                 tasks={tasks}
+                users={users}
                 todayShifts={todayShifts}
                 dashTasks={dashTasks}
                 statusBadge={statusBadge}
@@ -230,18 +235,21 @@ export default function App() {
                 onCancel={() => handleNav('shift')}
               />
 
-              <TaskView
-                isActive={activePage === 'task'}
-                isStf={!!isStf}
-                tFilter={tFilter}
-                setTFilter={setTFilter}
-                tasksForView={tasksForView}
-                users={users}
-                priorityBadge={priorityBadge}
-                statusBadge={statusBadge}
-                renderTaskActions={renderTaskActions}
-                onOpenTaskModal={() => setModal('modal-ct')}
-              />
+              {currentUser?.role !== 'part' ? (
+                <TaskView
+                  isActive={activePage === 'task'}
+                  isStf={!!isStf}
+                  tFilter={tFilter}
+                  setTFilter={setTFilter}
+                  tasksForView={tasksForView}
+                  allTasks={tasks}
+                  users={users}
+                  priorityBadge={priorityBadge}
+                  statusBadge={statusBadge}
+                  renderTaskActions={renderTaskActions}
+                  onOpenTaskModal={() => setModal('modal-ct')}
+                />
+              ) : null}
               <GachaView
                 isActive={activePage === 'gacha'}
                 gLog={gLog}
@@ -250,24 +258,7 @@ export default function App() {
                 gachaTaskVal={gachaTaskVal}
                 gachaLock={gachaLock}
               />
-              {activePage === 'gacha-settings' && (
-                <div className="page show" id="pg-gacha-settings">
-                  <div className="ph"><div><div className="pt">ガチャ設定</div></div></div>
-                  <GachaSettings
-                    tasks={tasks}
-                    gachaEnabled={gachaEnabled}
-                    onToggleEnabled={toggleGachaEnabled}
-                    onTogglePool={toggleTaskPool}
-                  />
-                </div>
-              )}
-              <ApprovalView
-                isActive={activePage === 'approval'}
-                approvalTasks={approvalTasks}
-                users={users}
-                priorityBadge={priorityBadge}
-                handleApproval={(id, approved) => handleApproval(id, approved, setTasks, tasks, setUsers, toast)}
-              />
+              {/* Approval view moved into the Dashboard */}
               <BusinessInfoView
                 isActive={activePage === 'business-info'}
                 businessInfo={businessInfo}
@@ -294,6 +285,9 @@ export default function App() {
           onClose={toggleNotif}
           onRead={readNotif}
           onClear={clearNotifs}
+          isMgr={isMgr}
+          onApprove={(taskId:number) => handleNotificationAction(taskId, true)}
+          onReject={(taskId:number) => handleNotificationAction(taskId, false)}
         />
       ) : null}
 
@@ -344,20 +338,6 @@ export default function App() {
           <div className="mf">
             <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
             <button className="btn btn-dark" type="button" onClick={() => handleStaffCreate(asName, asRole, setUsers, setModal, toast)}>追加</button>
-          </div>
-        </div>
-      </div>
-
-      <div className={`overlay ${modal === 'modal-assign' ? 'open' : ''}`} id="modal-assign" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
-        <div className="modal">
-          <h3>担当者を割り当て</h3>
-          <div className="mfg"><label>スタッフ</label><select value={assignUid} onChange={(event) => setAssignUid(Number(event.target.value))} id="asgn-u">
-            {availableUsers.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
-          </select></div>
-          <input type="hidden" id="asgn-tid" value={assignTaskId ?? ''} />
-          <div className="mf">
-            <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
-            <button className="btn btn-dark" type="button" onClick={() => handleAssignSubmit(assignTaskId, assignUid, setTasks, setModal, users, toast)}>割り当て</button>
           </div>
         </div>
       </div>

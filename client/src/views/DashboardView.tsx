@@ -5,15 +5,16 @@ type DashboardViewProps = {
   isActive: boolean;
   isMgr: boolean;
   currentUser: User;
-  dsObj: { todShifts: Shift[]; myTasks: Task[]; approvalCountParam: number };
+  dsObj: { todShifts: Shift[]; myTasks: Task[] };
   tasks: Task[];
   todayShifts: Array<{ shift: Shift; user: User | { name: string; ini: string }; isMine: boolean }> | null;
   dashTasks: Task[] | null;
   statusBadge: (s: TaskStatus) => ReactNode;
   priorityBadge: (p: Priority) => ReactNode;
+  users: User[];
 };
 
-export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, todayShifts, dashTasks, statusBadge, priorityBadge }: DashboardViewProps) {
+export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, todayShifts, dashTasks, statusBadge, priorityBadge, users }: DashboardViewProps) {
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-dashboard">
       <div className="ph">
@@ -21,12 +22,7 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
       </div>
       <div className="stats" id="ds">{
         isMgr ? (
-          <>
-            <div className="sc"><div className="sl">本日出勤</div><div className="sv">{dsObj.todShifts.length}</div></div>
-            <div className="sc"><div className="sl">総タスク</div><div className="sv">{tasks.length}</div></div>
-            <div className="sc"><div className="sl">承認待ち</div><div className="sv">{dsObj.approvalCountParam}</div></div>
-            <div className="sc"><div className="sl">未割当</div><div className="sv">{tasks.filter((task) => !task.to).length}</div></div>
-          </>
+          null
         ) : (
           <>
             <div className="sc"><div className="sl">レベル</div><div className="sv">Lv.{Math.floor((currentUser?.xp ?? 0) / 100) + 1}</div></div>

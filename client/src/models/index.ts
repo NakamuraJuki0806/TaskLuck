@@ -57,6 +57,7 @@ export interface Notification {
   sub: string;
   read: boolean;
   uid: number;
+  taskId?: number;
 }
 
 export type BusinessDayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun' | 'holiday';
