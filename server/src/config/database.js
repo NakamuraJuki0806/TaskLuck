@@ -1,12 +1,16 @@
 import mongoose from 'mongoose';
 
+let conn = null;
+
+// export const という形で名前付きエクスポートにします
 export const connectDatabase = async () => {
-  const mongoUri = process.env.MONGODB_URI;
+  if (conn) return conn;
 
-  if (!mongoUri) {
-    throw new Error('MONGODB_URI is not set');
-  }
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('MONGODB_URIが設定されていません。');
 
-  await mongoose.connect(mongoUri);
-  console.log('MongoDB connected');
+  console.log('=> データベースに接続します...');
+  conn = mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 }).then(m => m);
+  await conn;
+  return conn;
 };
