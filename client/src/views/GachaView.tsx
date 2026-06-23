@@ -8,10 +8,9 @@ type GachaViewProps = {
   handleCompleteGachaTask: () => void;
   gachaTaskVal: Task | undefined;
   gachaLock: boolean;
-  gachaEnabled?: boolean;
 };
 
-export function GachaView({ isActive, gLog, handleGacha, handleCompleteGachaTask, gachaTaskVal, gachaLock, gachaEnabled = true }: GachaViewProps) {
+export function GachaView({ isActive, gLog, handleGacha, handleCompleteGachaTask, gachaTaskVal, gachaLock }: GachaViewProps) {
   const pullTotal = gLog.length;
   const pullLast = gLog.length ? gLog[gLog.length - 1].rarity ?? gLog[gLog.length - 1].name : '—';
 
@@ -63,7 +62,7 @@ export function GachaView({ isActive, gLog, handleGacha, handleCompleteGachaTask
               </div>
               <button
                 onClick={handleGacha}
-                disabled={gachaLock || !gachaEnabled}
+                disabled={gachaLock}
                 className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-12 py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {gachaLock ? '処理中...' : 'ガチャを回す'}

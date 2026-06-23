@@ -1,9 +1,8 @@
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic UI',sans-serif;background:#f5f5f7;color:#1a1a1a;font-size:14px;min-height:100vh}
 
 /* LOGIN */
-#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f5f7}
-.login-box{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:36px 32px;width:340px}
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f5f7;width:100%}
+.login-box{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:36px 32px;width:90%;max-width:420px}
 .login-logo{display:flex;align-items:center;gap:8px;margin-bottom:28px}
 .login-logo-icon{width:32px;height:32px;background:#1a1a1a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px}
 .login-logo-name{font-size:18px;font-weight:600;letter-spacing:-0.03em}
@@ -20,9 +19,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic UI'
 .hint{font-size:11px;color:#aaa;text-align:center;margin-top:12px}
 
 /* APP */
-#app{min-height:100vh}
-.layout{display:flex;min-height:100vh}
-.sidebar{width:200px;background:#fff;border-right:1px solid #e5e5e5;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+#app{min-height:100vh;width:100%}
+.layout{display:flex;min-height:100vh;width:100%}
+.sidebar{width:20%;min-width:180px;max-width:240px;background:#fff;border-right:1px solid #e5e5e5;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
 .sb-top{padding:16px 14px 12px}
 .sb-logo{display:flex;align-items:center;gap:7px;margin-bottom:16px}
 .sb-logo-icon{width:26px;height:26px;background:#1a1a1a;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px}
@@ -44,11 +43,11 @@ nav{flex:1;padding:8px 8px}
 .btn-logout:hover{color:#555}
 
 /* MAIN */
-main{flex:1;min-width:0;overflow-y:auto}
-.page{display:none;padding:28px 32px;max-width:1000px}
+main{flex:1;min-width:0;overflow-y:auto;width:100%}
+.page{display:none;padding:28px 4%;max-width:100%;width:100%}
 .page.show{display:block}
 .ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap}
-.pt{font-size:20px;font-weight:600;letter-spacing:-0.03em}
+.pt{font-size:30px;font-weight:600;letter-spacing:-0.03em}
 .ps{font-size:12px;color:#888;margin-top:2px}
 
 /* CARDS */
@@ -120,17 +119,7 @@ main{flex:1;min-width:0;overflow-y:auto}
 .gacha-sub{font-size:12px;color:#888;margin-bottom:24px}
 .drum{border:1px solid #e5e5e5;border-radius:10px;height:62px;display:flex;align-items:center;justify-content:center;background:#fafafa;margin-bottom:20px;overflow:hidden;position:relative}
 .drum-txt{font-size:14px;font-weight:500;color:#1a1a1a;padding:0 16px;text-align:center}
-.gacha-btn{padding:11px 36px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:opacity .15s;display:inline-flex;align-items:center;gap:7px}
-.gacha-btn:hover:not(:disabled){opacity:.85}
-.gacha-btn:disabled{background:#d5d5d5;color:#aaa;cursor:not-allowed}
-.gacha-res{display:none;margin-top:20px;text-align:left;border:1px solid #e5e5e5;border-radius:10px;padding:16px 18px;background:#fff;animation:fup .35s ease}
-.gacha-res-lbl{font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
-.gacha-res-name{font-size:15px;font-weight:600;margin-bottom:6px}
-.gacha-res-meta{font-size:12px;color:#666}
 @keyframes fup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.gacha-hist{margin-top:24px;text-align:left}
-.ghe{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:12px}
-.ghe:last-child{border-bottom:none}
 
 /* TABS */
 .tabs{display:flex;gap:2px;border-bottom:1px solid #f0f0f0;margin-bottom:16px}
@@ -163,19 +152,12 @@ main{flex:1;min-width:0;overflow-y:auto}
 .uname{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
 .urole{font-size:10px;color:#999}
 .nsec{font-size:10px;color:#ccc;letter-spacing:.07em;text-transform:uppercase;padding:10px 8px 4px;font-weight:500}
-.ni.on{background:#f0f0f0;color:#bc29ea;font-weight:500}
-.ni.on svg{opacity:1;color:#bc29ea}
-.page.on{display:block}
-.pt{font-size:20px;font-weight:700;letter-spacing:-.04em}
+.pt{font-size:30px;font-weight:700;letter-spacing:-.04em}
 .ps{font-size:12px;color:#999;margin-top:2px}
 .seclbl,.sec-lbl{font-size:10px;color:#bbb;font-weight:500;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
 .tabs{display:flex;gap:2px;border-bottom:1px solid #f0f0f0;margin-bottom:16px}
 .tab{padding:8px 14px;font-size:12px;cursor:pointer;border:none;background:transparent;color:#888;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;font-family:inherit}
 .tab.on,.tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a;font-weight:500}
-.notif-btn-wrap{position:relative}
-.nbell{background:none;border:none;cursor:pointer;padding:6px;border-radius:7px;display:flex;align-items:center;justify-content:center;transition:background .1s;position:relative}
-.nbell:hover{background:#f0f0f0}
-.nbell-badge{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:#ef4444;border:1.5px solid #f5f5f7}
 .notif-hdr{padding:12px 14px;border-bottom:1px solid #f0f0f0;font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
 .notif-clear{font-size:11px;color:#bbb;cursor:pointer;background:none;border:none;font-family:inherit}
 .notif-clear:hover{color:#666}
