@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import './App.css';
-import { Role, Priority, TaskStatus, User, Shift, Task } from './models';
+import { Role, Priority, TaskStatus, User, Shift, ShiftPattern, Task, Notification } from './models';
 import useAppController from './controllers/useAppController';
-import { AuthView, DashboardView, ShiftView, TaskView, GachaView, ApprovalView, StaffView } from './views/Views';
+import { AuthView, DashboardView, ShiftView, TaskView, GachaView, BusinessInfoView, StaffView, NotificationPanel } from './views';
+import ShiftRequestScreen from './views/ShiftRequestScreen';
 
 const ROLE_LABELS: Record<Role, string> = {
   manager: '店長',
@@ -39,6 +40,12 @@ const ICONS: Record<string, React.JSX.Element> = {
   shield: (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
   ),
+  settings: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.98 2.98l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m2.98-2.98l4.24-4.24M19.78 19.78l-4.24-4.24m-2.98-2.98l-4.24-4.24"/></svg>
+  ),
+  bell: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 1 0-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+  ),
   users: (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
   ),
@@ -47,39 +54,48 @@ const ICONS: Record<string, React.JSX.Element> = {
 export default function App() {
   const controller = useAppController();
   const {
-    selectedRole, setSelectedRole, loginUserId, setLoginUserId, currentUser, setCurrentUser,
-    users, setUsers, shifts, setShifts, tasks, setTasks, gLog, setGLog,
+    loginUserId, setLoginUserId, currentUser, setCurrentUser,
+    users, setUsers, shifts, setShifts, shiftPatterns, setShiftPatterns, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
-    toastText, setToastText, gachaLabel, setGachaLabel, gachaResult, setGachaResult, gachaLock, setGachaLock,
-    reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqNote, setReqNote,
+    toastText, gachaLock, setGachaLock,
+    notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs, handleNotificationAction,
+    reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
-    asName, setAsName, asRole, setAsRole, assignTaskId, setAssignTaskId, assignUid, setAssignUid,
-    toast, handleLogin, logout, handleNav, userOptions, isMgr, isStf, approvalCount,
-    availableUsers, activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
+    asName, setAsName, asRole, setAsRole,
+    toast, handleLogin, logout, handleNav, isMgr, isStf,
+    activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
-    handleTaskStart, handleRequestDone, openAssignModal, handleAssignSubmit, handleTaskDelete, handleTaskCreateSubmit,
-    handleGacha, handleApproval, handleStaffCreate, approvalTasks, staffStats,
-    gachaInterval, gachaTimeout,
+    handleTaskStart, handleRequestDone, handleTaskDelete, handleTaskCreateSubmit,
+    handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, staffStats,
+    handleTaskTogglePool,
   } = controller;
 
-  const dsObj = dashboardStats(shifts, tasks, currentUser, isMgr, approvalCount);
-  const todayShifts = renderTodayShifts(shifts, users, currentUser);
-  const dashTasks = dashboardTasks(tasks, currentUser, isMgr);
-  const cal = renderCalendar(cy, cm, shifts, users, currentUser);
-  const currentMonthLabel = cal?.monthNames[cm] ?? '';
-  const shiftRows = shiftTableRows(shifts, users, isMgr, toast, setShifts);
-  const tasksForView = taskList(tasks, currentUser, isMgr, isStf ?? false, tFilter);
-  const gachaTaskVal = gachaTask(tasks, currentUser);
-  const staffStatsObj = staffStats(users);
+  const dsObj = useMemo(() => dashboardStats(shifts, tasks, currentUser, isMgr), [shifts, tasks, currentUser, isMgr]);
+  const todayShifts = useMemo(() => renderTodayShifts(shifts, users, currentUser), [shifts, users, currentUser]);
+  const dashTasks = useMemo(() => dashboardTasks(tasks, currentUser, isMgr), [tasks, currentUser, isMgr]);
+  const cal = useMemo(() => renderCalendar(cy, cm, shifts, currentUser), [cy, cm, shifts, currentUser]);
+  const currentMonthLabel = useMemo(() => cal?.monthNames[cm] ?? '', [cal, cm]);
+  const shiftRows = useMemo(() => shiftTableRows(shifts, users, currentUser, isMgr), [shifts, users, currentUser, isMgr]);
+  const tasksForView = useMemo(() => taskList(tasks, currentUser, isMgr, isStf ?? false, tFilter), [tasks, currentUser, isMgr, isStf, tFilter]);
+  const gachaTaskVal = useMemo(() => gachaTask(tasks, currentUser), [tasks, currentUser]);
+  const pullTotal = useMemo(() => gLog.length, [gLog]);
+  const pullLast = useMemo(() => gLog.length ? gLog[gLog.length - 1].rarity ?? gLog[gLog.length - 1].name : '—', [gLog]);
+  const staffStatsObj = useMemo(() => staffStats(users), [users]);
 
   const renderTaskActions = (task: Task) => {
     if (!currentUser) return null;
     if (isMgr) {
       return (
         <>
-          {!task.to ? <button className="btn btn-sm" type="button" onClick={() => openAssignModal(task.id, users, setAssignTaskId, setAssignUid, setModal)}>割当</button> : null}
-          <button className="btn btn-sm btn-danger" type="button" onClick={() => handleTaskDelete(task.id, setTasks, toast)}>削除</button>
+          {task.st === 'review' ? (
+            <>
+              <button className="btn btn-sm" type="button" style={{ color: '#15803d', borderColor: '#bbf7d0' }} onClick={() => handleApproval(task.id, true, setTasks, tasks, setUsers, toast)}>承認</button>
+              <button className="btn btn-sm btn-danger" type="button" onClick={() => handleApproval(task.id, false, setTasks, tasks, setUsers, toast)}>却下</button>
+            </>
+          ) : (
+            <button className="btn btn-sm btn-danger" type="button" onClick={() => handleTaskDelete(task.id, setTasks, toast)}>削除</button>
+          )}
         </>
       );
     }
@@ -109,11 +125,8 @@ export default function App() {
     <>
       {!currentUser ? (
         <AuthView
-          selectedRole={selectedRole}
-          onSelectRole={(role) => { setSelectedRole(role); setLoginUserId(''); }}
           loginUserId={loginUserId}
           setLoginUserId={setLoginUserId}
-          userOptions={userOptions}
           handleLogin={handleLogin}
         />
       ) : (
@@ -122,8 +135,7 @@ export default function App() {
             <div className="sidebar">
               <div className="sb-top">
                 <div className="sb-logo">
-                  <div className="sb-logo-icon">T</div>
-                  <div className="sb-logo-name">TaskLuck</div>
+                  <img src="/favicon.png" alt="TaskLuck" />
                 </div>
                 <div className="sb-user">
                   <div className="sb-avatar" id="sb-av">{currentUser.ini}</div>
@@ -140,10 +152,10 @@ export default function App() {
                     className={`ni ${activePage === item.id ? 'active' : ''}`}
                     type="button"
                     id={`ni-${item.id}`}
-                    onClick={() => handleNav(item.id as typeof activePage)}
+                    onClick={() => item.id === 'notifications' ? toggleNotif() : handleNav(item.id as typeof activePage)}
                   >
                     {ICONS[item.ic]}<span>{item.lbl}</span>
-                    {item.id === 'approval' && approvalCount > 0 ? <span className="ni-badge">{approvalCount}</span> : null}
+                    {item.id === 'notifications' && unreadCount > 0 ? <span className="ni-badge">{unreadCount}</span> : null}
                   </button>
                 ))}
               </nav>
@@ -162,6 +174,7 @@ export default function App() {
                 currentUser={currentUser}
                 dsObj={dsObj}
                 tasks={tasks}
+                users={users}
                 todayShifts={todayShifts}
                 dashTasks={dashTasks}
                 statusBadge={statusBadge}
@@ -171,7 +184,7 @@ export default function App() {
               <ShiftView
                 isActive={activePage === 'shift'}
                 isMgr={isMgr}
-                onOpenShiftRequest={() => setModal('modal-shift-req')}
+                onOpenShiftRequest={() => handleNav('shift-request')}
                 onOpenShiftCreate={() => { setModal('modal-cs'); setCsDate(todayIso); }}
                 cal={cal}
                 currentMonthLabel={currentMonthLabel}
@@ -192,34 +205,68 @@ export default function App() {
                 onShiftCreateSubmit={() => handleShiftCreateSubmit(csUid, csDate, csStart, csEnd, setShifts, setModal, toast)}
               />
 
-              <TaskView
-                isActive={activePage === 'task'}
-                isStf={!!isStf}
-                tFilter={tFilter}
-                setTFilter={setTFilter}
-                tasksForView={tasksForView}
+              <ShiftRequestScreen
+                isActive={activePage === 'shift-request'}
+                currentUser={currentUser}
+                cal={cal}
+                currentMonthLabel={currentMonthLabel}
+                setCm={setCm}
                 users={users}
-                priorityBadge={priorityBadge}
-                statusBadge={statusBadge}
-                renderTaskActions={renderTaskActions}
-                onOpenTaskModal={() => setModal('modal-ct')}
+                shiftPatterns={shiftPatterns}
+                setShiftPatterns={setShiftPatterns}
+                reqDate={reqDate}
+                setReqDate={setReqDate}
+                onSubmit={(entries) => {
+                  if (!currentUser) return;
+                  const monthPrefix = `${cy}-${String(cm + 1).padStart(2, '0')}-`;
+                  const newShifts = entries
+                    .map((entry) => {
+                      const pattern = shiftPatterns.find((p) => p.id === entry.patternId);
+                      if (!pattern) return null;
+                      return { id: Date.now() + Math.random(), uid: currentUser.id, date: entry.date, s: pattern.workStart, e: pattern.workEnd, st: 'request' as const, isOff: false };
+                    })
+                    .filter(Boolean) as any[];
+                  setShifts((prev) => [
+                    ...prev.filter((sh) => !(sh.uid === currentUser.id && sh.date.startsWith(monthPrefix) && sh.st === 'request')),
+                    ...newShifts,
+                  ]);
+                  toast('シフト希望を提出しました');
+                  handleNav('shift');
+                }}
+                onCancel={() => handleNav('shift')}
               />
+
+              {currentUser?.role !== 'part' ? (
+                <TaskView
+                  isActive={activePage === 'task'}
+                  isStf={!!isStf}
+                  tFilter={tFilter}
+                  setTFilter={setTFilter}
+                  tasksForView={tasksForView}
+                  allTasks={tasks}
+                  users={users}
+                  priorityBadge={priorityBadge}
+                  statusBadge={statusBadge}
+                  renderTaskActions={renderTaskActions}
+                  toggleTaskPool={(id,inPool)=>handleTaskTogglePool(id,inPool,setTasks)}
+                  onOpenTaskModal={() => setModal('modal-ct')}
+                />
+              ) : null}
               <GachaView
                 isActive={activePage === 'gacha'}
-                gachaLabel={gachaLabel}
-                gachaResult={gachaResult}
                 gLog={gLog}
-                handleGacha={() => handleGacha(tasks, currentUser, setTasks, setGachaLabel, setGachaResult, setGLog, toast, setGachaLock, gachaInterval, gachaTimeout)}
+                handleGacha={() => handleGacha(tasks, currentUser, setTasks, setGLog, toast, setGachaLock)}
+                handleCompleteGachaTask={() => handleCompleteGachaTask(setTasks, toast, gachaTaskVal)}
                 gachaTaskVal={gachaTaskVal}
                 gachaLock={gachaLock}
-                priorityLabels={PRIO_LABELS}
               />
-              <ApprovalView
-                isActive={activePage === 'approval'}
-                approvalTasks={approvalTasks}
-                users={users}
-                priorityBadge={priorityBadge}
-                handleApproval={(id, approved) => handleApproval(id, approved, setTasks, tasks, setUsers, toast)}
+              {/* Approval view moved into the Dashboard */}
+              <BusinessInfoView
+                isActive={activePage === 'business-info'}
+                businessInfo={businessInfo}
+                updateBusinessInfo={updateBusinessInfo}
+                resetBusinessInfo={resetBusinessInfo}
+                toast={toast}
               />
               <StaffView
                 isActive={activePage === 'staff'}
@@ -232,19 +279,21 @@ export default function App() {
         </div>
       )}
 
-      <div className={`overlay ${modal === 'modal-shift-req' ? 'open' : ''}`} id="modal-shift-req" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
-        <div className="modal">
-          <h3>シフト希望を提出</h3>
-          <div className="mfg"><label>日付</label><input type="date" value={reqDate} onChange={(event) => setReqDate(event.target.value)} /></div>
-          <div className="mfg"><label>開始時間</label><input type="time" value={reqStart} onChange={(event) => setReqStart(event.target.value)} /></div>
-          <div className="mfg"><label>終了時間</label><input type="time" value={reqEnd} onChange={(event) => setReqEnd(event.target.value)} /></div>
-          <div className="mfg"><label>備考</label><input type="text" value={reqNote} onChange={(event) => setReqNote(event.target.value)} placeholder="任意" /></div>
-          <div className="mf">
-            <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
-            <button className="btn btn-dark" type="button" onClick={() => handleShiftRequestSubmit(currentUser, reqDate, reqStart, reqEnd, setShifts, setModal, toast)}>提出</button>
-          </div>
-        </div>
-      </div>
+      {currentUser ? (
+        <NotificationPanel
+          open={notificationOpen}
+          notifications={currentUser.role === 'manager' ? notifications : notifications.filter((item: Notification) => item.uid === currentUser.id)}
+          unreadCount={unreadCount}
+          onClose={toggleNotif}
+          onRead={readNotif}
+          onClear={clearNotifs}
+          isMgr={isMgr}
+          onApprove={(taskId:number) => handleNotificationAction(taskId, true)}
+          onReject={(taskId:number) => handleNotificationAction(taskId, false)}
+        />
+      ) : null}
+
+
 
       <div className={`overlay ${modal === 'modal-cs' ? 'open' : ''}`} id="modal-cs" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
         <div className="modal">
@@ -291,20 +340,6 @@ export default function App() {
           <div className="mf">
             <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
             <button className="btn btn-dark" type="button" onClick={() => handleStaffCreate(asName, asRole, setUsers, setModal, toast)}>追加</button>
-          </div>
-        </div>
-      </div>
-
-      <div className={`overlay ${modal === 'modal-assign' ? 'open' : ''}`} id="modal-assign" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
-        <div className="modal">
-          <h3>担当者を割り当て</h3>
-          <div className="mfg"><label>スタッフ</label><select value={assignUid} onChange={(event) => setAssignUid(Number(event.target.value))} id="asgn-u">
-            {availableUsers.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
-          </select></div>
-          <input type="hidden" id="asgn-tid" value={assignTaskId ?? ''} />
-          <div className="mf">
-            <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
-            <button className="btn btn-dark" type="button" onClick={() => handleAssignSubmit(assignTaskId, assignUid, setTasks, setModal, users, toast)}>割り当て</button>
           </div>
         </div>
       </div>
