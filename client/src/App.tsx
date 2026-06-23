@@ -68,6 +68,7 @@ export default function App() {
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
     handleTaskStart, handleRequestDone, handleTaskDelete, handleTaskCreateSubmit,
     handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, staffStats,
+    handleTaskTogglePool,
   } = controller;
 
   const dsObj = useMemo(() => dashboardStats(shifts, tasks, currentUser, isMgr), [shifts, tasks, currentUser, isMgr]);
@@ -247,6 +248,7 @@ export default function App() {
                   priorityBadge={priorityBadge}
                   statusBadge={statusBadge}
                   renderTaskActions={renderTaskActions}
+                  toggleTaskPool={(id,inPool)=>handleTaskTogglePool(id,inPool,setTasks)}
                   onOpenTaskModal={() => setModal('modal-ct')}
                 />
               ) : null}

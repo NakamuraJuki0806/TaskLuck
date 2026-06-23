@@ -12,12 +12,13 @@ type TaskViewProps = {
   priorityBadge: (p: Priority) => ReactNode;
   statusBadge: (s: TaskStatus) => ReactNode;
   renderTaskActions: (task: Task) => ReactNode;
+  toggleTaskPool: (id: number, inPool: boolean) => void;
   onOpenTaskModal: () => void;
 };
 
-export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, allTasks, users, priorityBadge, statusBadge, renderTaskActions, onOpenTaskModal }: TaskViewProps) {
+export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, allTasks, users, priorityBadge, statusBadge, renderTaskActions, toggleTaskPool, onOpenTaskModal }: TaskViewProps) {
   const [poolFilter, setPoolFilter] = useState<'all' | 'in' | 'out'>('all');
-  const [selectedPrios, setSelectedPrios] = useState<Priority[] | []>([]);
+  const [selectedPrios, setSelectedPrios] = useState<Priority[]>([]);
   const [assigneeFilter, setAssigneeFilter] = useState<number | 'all' | 'unassigned'>('all');
   const [xpMin, setXpMin] = useState<number | ''>('');
   const [xpMax, setXpMax] = useState<number | ''>('');
@@ -59,6 +60,7 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
 
     return list;
   }, [tasksForView, poolFilter, selectedPrios, assigneeFilter, xpMin, xpMax, sortKey, sortOrder]);
+
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-task">
       <div className="ph">
@@ -99,16 +101,16 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
                   <button className="btn btn-sm" type="button" onClick={() => setShowFilterPopup(false)}>閉じる</button>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div>
-                    <div style={{ fontSize: '14px', marginBottom: '8px' }}>プール</div>
-                    <select value={poolFilter} onChange={(e) => setPoolFilter(e.target.value as any)} style={{ width: '100%' }}>
+                  <div style={{ border: '1px solid #e5e5e5', borderRadius: '8px', padding: '14px', backgroundColor: '#fafafa' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '10px', color: '#555' }}>プール</div>
+                    <select value={poolFilter} onChange={(e) => setPoolFilter(e.target.value as any)} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e5e5e5', fontSize: '13px' }}>
                       <option value="all">全て</option>
                       <option value="in">プール内</option>
                       <option value="out">プール外</option>
                     </select>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '14px', marginBottom: '8px' }}>担当</div>
+                  <div style={{ border: '1px solid #e5e5e5', borderRadius: '8px', padding: '14px', backgroundColor: '#fafafa' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '10px', color: '#555' }}>担当</div>
                     <select value={assigneeFilter} onChange={(e) => {
                       const value = e.target.value;
                       if (value === 'all' || value === 'unassigned') {
@@ -116,7 +118,7 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
                       } else {
                         setAssigneeFilter(Number(value));
                       }
-                    }} style={{ width: '100%' }}>
+                    }} style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e5e5e5', fontSize: '13px' }}>
                       <option value="all">全て</option>
                       <option value="unassigned">未割当</option>
                       {users.map((user) => (
@@ -124,34 +126,36 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '14px', marginBottom: '8px' }}>優先度</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><input type="checkbox" checked={selectedPrios.includes('high')} onChange={(e) => setSelectedPrios((prev) => e.target.checked ? [...prev, 'high'] : prev.filter((p) => p !== 'high'))} /> 高</label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><input type="checkbox" checked={selectedPrios.includes('mid')} onChange={(e) => setSelectedPrios((prev) => e.target.checked ? [...prev, 'mid'] : prev.filter((p) => p !== 'mid'))} /> 中</label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><input type="checkbox" checked={selectedPrios.includes('low')} onChange={(e) => setSelectedPrios((prev) => e.target.checked ? [...prev, 'low'] : prev.filter((p) => p !== 'low'))} /> 低</label>
+                  <div style={{ border: '1px solid #e5e5e5', borderRadius: '8px', padding: '14px', backgroundColor: '#fafafa' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '10px', color: '#555' }}>優先度</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}><input type="checkbox" checked={selectedPrios.includes('high')} onChange={(e) => setSelectedPrios((prev) => e.target.checked ? [...prev, 'high'] : prev.filter((p) => p !== 'high'))} /> 高</label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}><input type="checkbox" checked={selectedPrios.includes('mid')} onChange={(e) => setSelectedPrios((prev) => e.target.checked ? [...prev, 'mid'] : prev.filter((p) => p !== 'mid'))} /> 中</label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}><input type="checkbox" checked={selectedPrios.includes('low')} onChange={(e) => setSelectedPrios((prev) => e.target.checked ? [...prev, 'low'] : prev.filter((p) => p !== 'low'))} /> 低</label>
                     </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '14px', marginBottom: '8px' }}>XP</div>
+                  <div style={{ border: '1px solid #e5e5e5', borderRadius: '8px', padding: '14px', backgroundColor: '#fafafa' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '10px', color: '#555' }}>XP</div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <input type="number" value={xpMin} min={0} onChange={(e) => setXpMin(e.target.value === '' ? '' : Number(e.target.value))} placeholder="最小" style={{ width: '100%' }} />
-                      <input type="number" value={xpMax} min={0} onChange={(e) => setXpMax(e.target.value === '' ? '' : Number(e.target.value))} placeholder="最大" style={{ width: '100%' }} />
+                      <input type="number" value={xpMin} min={0} onChange={(e) => setXpMin(e.target.value === '' ? '' : Number(e.target.value))} placeholder="最小" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e5e5e5', fontSize: '13px' }} />
+                      <input type="number" value={xpMax} min={0} onChange={(e) => setXpMax(e.target.value === '' ? '' : Number(e.target.value))} placeholder="最大" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e5e5e5', fontSize: '13px' }} />
                     </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '14px', marginBottom: '8px' }}>並び替え</div>
-                    <select value={sortKey} onChange={(e) => setSortKey(e.target.value as any)} style={{ width: '100%', marginBottom: '10px' }}>
-                      <option value="name">名前</option>
-                      <option value="pri">優先度</option>
-                      <option value="to">担当</option>
-                      <option value="xp">XP</option>
-                      <option value="st">状態</option>
-                    </select>
-                    <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value as any)} style={{ width: '100%' }}>
-                      <option value="asc">昇順</option>
-                      <option value="desc">降順</option>
-                    </select>
+                  <div style={{ border: '1px solid #e5e5e5', borderRadius: '8px', padding: '14px', backgroundColor: '#fafafa', gridColumn: '1 / -1' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '10px', color: '#555' }}>並び替え</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <select value={sortKey} onChange={(e) => setSortKey(e.target.value as any)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #e5e5e5', fontSize: '13px' }}>
+                        <option value="name">名前</option>
+                        <option value="pri">優先度</option>
+                        <option value="to">担当</option>
+                        <option value="xp">XP</option>
+                        <option value="st">状態</option>
+                      </select>
+                      <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value as any)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #e5e5e5', fontSize: '13px' }}>
+                        <option value="asc">昇順</option>
+                        <option value="desc">降順</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '18px' }}>
@@ -178,6 +182,7 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
         <table className="tbl" id="ttbl">
           <thead>
             <tr>
+              <th style={{ width: '1px' }}></th>
               <th>タスク名</th>
               <th>優先度</th>
               <th>担当</th>
@@ -188,11 +193,21 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
           </thead>
           <tbody>
             {filteredTasks.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', color: '#aaa', padding: '2rem', fontSize: '13px' }}>タスクはありません</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', color: '#aaa', padding: '2rem', fontSize: '13px' }}>タスクはありません</td></tr>
             ) : filteredTasks.map((task) => {
               const assignee = task.to ? users.find((user) => user.id === task.to) : null;
+              const inPool = !!task.inPool;
               return (
                 <tr key={task.id}>
+                  <td style={{ textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={inPool}
+                      onChange={(e) => {
+                        toggleTaskPool(task.id, e.target.checked);
+                      }}
+                    />
+                  </td>
                   <td>
                     <div style={{ fontSize: '13px', fontWeight: 500 }}>{task.name}</div>
                     <div style={{ fontSize: '11px', color: '#aaa' }}>{task.desc}</div>

@@ -171,7 +171,7 @@ main{flex:1;min-width:0;overflow-y:auto;width:100%}
 .notif-sub{font-size:11px;color:#999}
 .notif-dot{width:6px;height:6px;border-radius:50%;background:#3b82f6;flex-shrink:0;margin-top:3px}
 .notif-empty{padding:24px;text-align:center;color:#bbb;font-size:13px}
-.notif-panel{position:fixed;top:88px;right:24px;width:320px;background:#fff;border:1px solid #e5e5e5;border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,0.12);z-index:1000;opacity:0;visibility:hidden;transform:translateY(-10px);transition:opacity .15s,visibility .15s,transform .15s}
+.notif-panel{position:fixed;top:88px;right:24px;width:360px;background:#fff;border:1px solid #e5e5e5;border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,0.12);z-index:1000;opacity:0;visibility:hidden;transform:translateY(-10px);transition:opacity .15s,visibility .15s,transform .15s}
 .notif-panel.open{opacity:1;visibility:visible;transform:translateY(0)}
 .gacha-disabled-msg{margin-top:16px;padding:12px 14px;border-radius:14px;background:#fdf2f8;color:#9d174d;max-width:460px;line-height:1.6}
 .gh-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
