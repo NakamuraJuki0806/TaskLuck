@@ -102,7 +102,6 @@ export default function ShiftRequestScreen({
       date,
       patternId,
     }));
-    if (entries.length === 0) return;
     onSubmit(entries);
   };
 
@@ -150,7 +149,7 @@ export default function ShiftRequestScreen({
     <div className={`page ${isActive ? "show" : ""}`} id="pg-shift-request">
       <style>{`
         .sr-cell { position: relative; cursor: pointer; }
-        .sr-cell.sel { box-shadow: 0 0 0 2px #34c759; background: #f0fbf3 !important; }
+        .sr-cell.sel { box-shadow: 0 0 0 2px #4b9be0; background: transparent !important; }
         .sr-cell.closed { background: #dcf6e5 !important; cursor: default; }
         .sr-cell.closed:hover { background: #dcf6e5 !important; }
         .sr-shift { position: relative; display: flex; align-items: center; justify-content: center; margin-top: 4px; font-size: 10px; font-weight: 600; border-radius: 5px; padding: 3px 5px; line-height: 1.2; }
@@ -172,7 +171,6 @@ export default function ShiftRequestScreen({
             type="button"
             style={{ background: "#34c759", borderColor: "#34c759", color: "#fff" }}
             onClick={handleSubmit}
-            disabled={submitCount === 0}
           >
             シフト提出{submitCount > 0 ? `（${submitCount}件）` : ""}
           </button>
@@ -333,17 +331,6 @@ export default function ShiftRequestScreen({
                   style={{ display: "block", width: "100%", marginTop: "4px", border: "1px solid #e7e7ea", borderRadius: "6px", padding: "7px 8px", fontSize: "13px" }}
                 />
               </label>
-              <label style={{ flex: 1, minWidth: "100px", fontSize: "12px", color: "#555" }}>
-                休憩（分）
-                <input
-                  type="number"
-                  min="0"
-                  step="15"
-                  value={draft.breakTime}
-                  onChange={(e) => setDraft({ ...draft, breakTime: parseInt(e.target.value, 10) || 0 })}
-                  style={{ display: "block", width: "100%", marginTop: "4px", border: "1px solid #e7e7ea", borderRadius: "6px", padding: "7px 8px", fontSize: "13px" }}
-                />
-              </label>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
               <button className="btn btn-sm" type="button" onClick={() => setShowForm(false)}>
@@ -360,7 +347,7 @@ export default function ShiftRequestScreen({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1.3fr 1fr 1fr 1.4fr 40px",
+              gridTemplateColumns: "1.3fr 1fr 1.4fr 40px",
               gap: "8px",
               padding: "8px",
               fontSize: "12px",
@@ -370,7 +357,6 @@ export default function ShiftRequestScreen({
           >
             <span>タイトル</span>
             <span>勤務時間</span>
-            <span>休憩（分）</span>
             <span>メモ</span>
             <span />
           </div>
@@ -388,7 +374,7 @@ export default function ShiftRequestScreen({
                 key={p.id}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1.3fr 1fr 1fr 1.4fr 40px",
+                  gridTemplateColumns: "1.3fr 1fr 1.4fr 40px",
                   gap: "8px",
                   padding: "10px 8px",
                   borderBottom: "1px solid #f1f1f3",
@@ -417,9 +403,6 @@ export default function ShiftRequestScreen({
                 </span>
                 <span style={{ display: "flex", alignItems: "center" }}>
                   {p.workStart}-{p.workEnd}
-                </span>
-                <span style={{ display: "flex", alignItems: "center" }}>
-                  {p.breakTime}分
                 </span>
                 <span style={{ display: "flex", alignItems: "center", color: "#555" }}>
                   {p.memo || "—"}

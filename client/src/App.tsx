@@ -211,12 +211,20 @@ export default function App() {
                 reqDate={reqDate}
                 setReqDate={setReqDate}
                 onSubmit={(entries) => {
-                  for (const entry of entries) {
-                    const pattern = shiftPatterns.find((p) => p.id === entry.patternId);
-                    if (pattern) {
-                      handleShiftRequestSubmit(currentUser, entry.date, pattern.workStart, pattern.workEnd, setShifts, setModal, toast);
-                    }
-                  }
+                  if (!currentUser) return;
+                  const monthPrefix = `${cy}-${String(cm + 1).padStart(2, '0')}-`;
+                  const newShifts = entries
+                    .map((entry) => {
+                      const pattern = shiftPatterns.find((p) => p.id === entry.patternId);
+                      if (!pattern) return null;
+                      return { id: Date.now() + Math.random(), uid: currentUser.id, date: entry.date, s: pattern.workStart, e: pattern.workEnd, st: 'request' as const, isOff: false };
+                    })
+                    .filter(Boolean) as any[];
+                  setShifts((prev) => [
+                    ...prev.filter((sh) => !(sh.uid === currentUser.id && sh.date.startsWith(monthPrefix) && sh.st === 'request')),
+                    ...newShifts,
+                  ]);
+                  toast('シフト希望を提出しました');
                   handleNav('shift');
                 }}
                 onCancel={() => handleNav('shift')}
