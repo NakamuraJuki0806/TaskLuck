@@ -12,12 +12,13 @@ type TaskViewProps = {
   priorityBadge: (p: Priority) => ReactNode;
   statusBadge: (s: TaskStatus) => ReactNode;
   renderTaskActions: (task: Task) => ReactNode;
+  toggleTaskPool: (id: number, inPool: boolean) => void;
   onOpenTaskModal: () => void;
 };
 
-export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, allTasks, users, priorityBadge, statusBadge, renderTaskActions, onOpenTaskModal }: TaskViewProps) {
+export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, allTasks, users, priorityBadge, statusBadge, renderTaskActions, toggleTaskPool, onOpenTaskModal }: TaskViewProps) {
   const [poolFilter, setPoolFilter] = useState<'all' | 'in' | 'out'>('all');
-  const [selectedPrios, setSelectedPrios] = useState<Priority[] | []>([]);
+  const [selectedPrios, setSelectedPrios] = useState<Priority[]>([]);
   const [assigneeFilter, setAssigneeFilter] = useState<number | 'all' | 'unassigned'>('all');
   const [xpMin, setXpMin] = useState<number | ''>('');
   const [xpMax, setXpMax] = useState<number | ''>('');
@@ -59,6 +60,7 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
 
     return list;
   }, [tasksForView, poolFilter, selectedPrios, assigneeFilter, xpMin, xpMax, sortKey, sortOrder]);
+
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-task">
       <div className="ph">
@@ -180,6 +182,7 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
         <table className="tbl" id="ttbl">
           <thead>
             <tr>
+              <th style={{ width: '1px' }}></th>
               <th>タスク名</th>
               <th>優先度</th>
               <th>担当</th>
@@ -190,11 +193,21 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
           </thead>
           <tbody>
             {filteredTasks.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', color: '#aaa', padding: '2rem', fontSize: '13px' }}>タスクはありません</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', color: '#aaa', padding: '2rem', fontSize: '13px' }}>タスクはありません</td></tr>
             ) : filteredTasks.map((task) => {
               const assignee = task.to ? users.find((user) => user.id === task.to) : null;
+              const inPool = !!task.inPool;
               return (
                 <tr key={task.id}>
+                  <td style={{ textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={inPool}
+                      onChange={(e) => {
+                        toggleTaskPool(task.id, e.target.checked);
+                      }}
+                    />
+                  </td>
                   <td>
                     <div style={{ fontSize: '13px', fontWeight: 500 }}>{task.name}</div>
                     <div style={{ fontSize: '11px', color: '#aaa' }}>{task.desc}</div>
