@@ -22,6 +22,7 @@ type StaffViewProps = {
 
 export function StaffView({ isActive, users, setUsers, staffStats, onOpenStaffModal }: StaffViewProps) {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editName, setEditName] = useState('');
   const [editPassword, setEditPassword] = useState('');
   const [editSalary, setEditSalary] = useState(0);
   const [editExtraWages, setEditExtraWages] = useState<ExtraWage[]>([]);
@@ -29,6 +30,7 @@ export function StaffView({ isActive, users, setUsers, staffStats, onOpenStaffMo
 
   useEffect(() => {
     if (selectedUser) {
+      setEditName(selectedUser.name);
       setEditPassword(selectedUser.password);
       setEditSalary(
         selectedUser.role === 'part'
@@ -68,9 +70,10 @@ export function StaffView({ isActive, users, setUsers, staffStats, onOpenStaffMo
     const salaryFields = selectedUser.role === 'part'
       ? { hourlyWage: editSalary, extraWages: validExtras, monthlySalary: selectedUser.monthlySalary }
       : { monthlySalary: editSalary, hourlyWage: selectedUser.hourlyWage, extraWages: selectedUser.extraWages };
+    const trimmedName = editName.trim() || selectedUser.name;
     setUsers((prev) => prev.map((u) =>
       u.id === selectedUser.id
-        ? { ...u, password: editPassword, ...salaryFields }
+        ? { ...u, name: trimmedName, ini: trimmedName.charAt(0), password: editPassword, ...salaryFields }
         : u
     ));
     setSelectedUser(null);
@@ -147,9 +150,14 @@ export function StaffView({ isActive, users, setUsers, staffStats, onOpenStaffMo
               }}>
                 {selectedUser.ini}
               </div>
-              <div>
-                <div style={{ fontSize: '17px', fontWeight: 700 }}>{selectedUser.name}</div>
-                <div style={{ fontSize: '12px', color: '#86868b' }}>{ROLE_LABELS[selectedUser.role] ?? selectedUser.role}</div>
+              <div style={{ flex: 1 }}>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  style={{ fontSize: '17px', fontWeight: 700, border: '1px solid #ddd', borderRadius: '8px', padding: '4px 8px', width: '100%', boxSizing: 'border-box' }}
+                />
+                <div style={{ fontSize: '12px', color: '#86868b', marginTop: '4px' }}>{ROLE_LABELS[selectedUser.role] ?? selectedUser.role}</div>
               </div>
             </div>
 
