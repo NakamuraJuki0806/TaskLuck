@@ -242,7 +242,7 @@ export default function useAppController() {
     return list;
   };
 
-  const gachaTask = (tasksParam: Task[], currentUserParam: User | null) => tasksParam.find((task) => task.to === currentUserParam?.id && task.st === 'in_progress');
+  const gachaTask = (tasksParam: Task[], currentUserParam: User | null) => tasksParam.find((task) => task.to === currentUserParam?.id && (task.st === 'in_progress' || task.st === 'review'));
 
   const handleShiftRequestSubmit = (currentUserParam: User | null, date: string, s: string, e: string, setShiftsFn: (fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => {
     if (!date||!s||!e){toastFn('日付と時間を入力してください');return;}

@@ -19,12 +19,29 @@ export function GachaView({ isActive, gLog, handleGacha, handleCompleteGachaTask
       <div className="ph"><div><div className="pt">闇鍋ガチャ</div><div className="ps">ランダムにタスクが割り当てられます</div></div></div>
       <div className="w-full max-w-2xl mx-auto px-4 py-6 space-y-4">
         <div className="bg-white rounded-lg p-8 text-center border border-gray-200">
-          {gachaTaskVal ? (
+          {gachaTaskVal && gachaTaskVal.st === 'review' ? (
+            <div>
+              <div className="mb-6">
+                <div className="inline-block bg-yellow-50 border border-yellow-300 rounded-full px-4 py-2 mb-4">
+                  <span className="text-sm text-yellow-600">
+                    承認待ち
+                  </span>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold mb-3">{gachaTaskVal.name}</h2>
+              <p className="text-gray-600 text-sm mb-6">{gachaTaskVal.desc}</p>
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <div className="text-xs text-gray-500 mb-1">予定XP</div>
+                <div className="text-3xl font-bold text-purple-600">+{gachaTaskVal.xp || 0} XP</div>
+              </div>
+              <p className="text-sm text-gray-500">店長の承認をお待ちください</p>
+            </div>
+          ) : gachaTaskVal ? (
             <div>
               <div className="mb-6">
                 <div className="inline-block bg-purple-50 border border-purple-200 rounded-full px-4 py-2 mb-4">
                   <span className="text-sm text-purple-600">
-                    対応中
+                    進行中
                   </span>
                 </div>
               </div>
