@@ -1,11 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Role, Priority, TaskStatus, User, Shift, Task, GachaLog, Notification, BusinessInfo, USERS_INITIAL, SHIFTS_INITIAL, TASKS_INITIAL, BUSINESS_INFO_INITIAL } from '../models';
+import { Role, Priority, TaskStatus, User, Shift, ShiftPattern, Task, GachaLog, Notification, BusinessInfo, USERS_INITIAL, SHIFTS_INITIAL, SHIFT_PATTERNS_INITIAL, TASKS_INITIAL, BUSINESS_INFO_INITIAL } from '../models';
 
 export default function useAppController() {
   const [loginUserId, setLoginUserId] = useState<number | ''>('');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(USERS_INITIAL);
   const [shifts, setShifts] = useState<Shift[]>(SHIFTS_INITIAL);
+  const [shiftPatternsMap, setShiftPatternsMap] = useState<Record<number, ShiftPattern[]>>({});
+  const shiftPatterns = currentUser
+    ? (shiftPatternsMap[currentUser.id] ?? SHIFT_PATTERNS_INITIAL)
+    : SHIFT_PATTERNS_INITIAL;
+  const setShiftPatterns: React.Dispatch<React.SetStateAction<ShiftPattern[]>> = (action) => {
+    if (!currentUser) return;
+    const uid = currentUser.id;
+    setShiftPatternsMap((prev) => {
+      const current = prev[uid] ?? SHIFT_PATTERNS_INITIAL;
+      const next = typeof action === 'function' ? action(current) : action;
+      return { ...prev, [uid]: next };
+    });
+  };
   const [tasks, setTasks] = useState<Task[]>(TASKS_INITIAL);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(BUSINESS_INFO_INITIAL);
   const [gLog, setGLog] = useState<GachaLog[]>([]);
@@ -14,7 +27,7 @@ export default function useAppController() {
   const [cy, setCy] = useState(2025);
   const [cm, setCm] = useState(5);
   const [tFilter, setTFilter] = useState<TaskStatus | 'all'>('all');
-  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'task' | 'gacha' | 'business-info' | 'staff' | 'notifications'>('dashboard');
+  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'shift-request' | 'task' | 'gacha' | 'business-info' | 'staff' | 'notifications'>('dashboard');
   const [modal, setModal] = useState<string | null>(null);
   const [toastText, setToastText] = useState('');
   const [gachaLock, setGachaLock] = useState(false);
@@ -233,7 +246,7 @@ export default function useAppController() {
   const handleShiftRequestSubmit = (currentUserParam: User | null, date: string, s: string, e: string, setShiftsFn: (fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => {
     if (!date||!s||!e){toastFn('日付と時間を入力してください');return;}
     if (!currentUserParam) return;
-    setShiftsFn((prev:any)=>[...prev,{id:Date.now(),uid:currentUserParam.id,date,s,e,st:'request',isOff:reqOff}]);
+    setShiftsFn((prev:any)=>[...prev.filter((sh:any)=>!(sh.uid===currentUserParam.id&&sh.date===date&&sh.st==='request')),{id:Date.now(),uid:currentUserParam.id,date,s,e,st:'request',isOff:reqOff}]);
     setModalFn(null);toastFn('シフト希望を提出しました');
   };
 
@@ -271,6 +284,7 @@ export default function useAppController() {
   };
   
   const handleTaskDelete = (id:number, setTasksFn:(fn:any)=>void, toastFn:(m:string)=>void) => { setTasksFn((prev:any)=>prev.filter((task:any)=>task.id!==id)); toastFn('削除しました'); };
+  const handleTaskTogglePool = (id:number, inPool:boolean, setTasksFn:(fn:any)=>void) => { setTasksFn((prev:any)=>prev.map((task:any)=>task.id===id?{...task,inPool}:task)); };
   const handleTaskCreateSubmit = (ctNameParam:string, ctDescParam:string, ctPriParam:Priority, ctXpParam:number, currentUserParam:User | null, setTasksFn:(fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => { if (!ctNameParam.trim()){ toastFn('タスク名を入力してください'); return; } if (!currentUserParam) return; setTasksFn((prev:any)=>[...prev,{id:Date.now(),name:ctNameParam.trim(),desc:ctDescParam.trim(),pri:ctPriParam,xp:ctXpParam,st:'pending',to:null,by:currentUserParam.id,inPool:true}]); setModalFn(null); toastFn('タスクを追加しました'); };
 
   const finalizeGachaDraw = (chosen: Task, currentUserParam: User, rkey: string, rarityLabel: string, setTasksFn:(fn:any)=>void, setGLogFn:(fn:any)=>void, toastFn:(m:string)=>void, setGachaLockFn:(b:boolean)=>void) => {
@@ -330,7 +344,7 @@ export default function useAppController() {
 
   return {
     loginUserId, setLoginUserId, currentUser, setCurrentUser,
-    users, setUsers, shifts, setShifts, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
+    users, setUsers, shifts, setShifts, shiftPatterns, setShiftPatterns, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, gachaLock, setGachaLock,
     notificationOpen, setNotificationOpen, notifications, setNotifications, unreadCount, toggleNotif, readNotif, clearNotifs, handleNotificationAction,
@@ -341,7 +355,7 @@ export default function useAppController() {
     toast, handleLogin, logout, handleNav, isMgr, isStf,
     activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
-    handleTaskStart, handleRequestDone, handleTaskDelete, handleTaskCreateSubmit,
+    handleTaskStart, handleRequestDone, handleTaskDelete, handleTaskTogglePool, handleTaskCreateSubmit,
     handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, staffStats,
   } as const;
 }
