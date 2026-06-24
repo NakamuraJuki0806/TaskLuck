@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { Shift, User } from '../models';
+import { Shift, User, BusinessInfo } from '../models';
 
 type ShiftRow = { shift: Shift; user: User | { name: string; ini?: string }; badge: { label: string; cls: string } };
 
@@ -25,9 +25,12 @@ type ShiftViewProps = {
   setCsEnd: (value: string) => void;
   onShiftRequestSubmit: () => void;
   onShiftCreateSubmit: () => void;
+  businessInfo: BusinessInfo;
 };
 
-export function ShiftView({ isActive, isMgr, onOpenShiftRequest, onOpenShiftCreate, cal, currentMonthLabel, setCm, shiftRows, users, toast, setShifts, csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd, onShiftRequestSubmit, onShiftCreateSubmit }: ShiftViewProps) {
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+
+export function ShiftView({ isActive, isMgr, onOpenShiftRequest, onOpenShiftCreate, cal, currentMonthLabel, setCm, shiftRows, users, toast, setShifts, csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd, onShiftRequestSubmit, onShiftCreateSubmit, businessInfo }: ShiftViewProps) {
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-shift">
       <div className="ph">
@@ -46,13 +49,25 @@ export function ShiftView({ isActive, isMgr, onOpenShiftRequest, onOpenShiftCrea
               <button className="btn btn-sm" type="button" onClick={() => setCm((prev) => prev + 1 > 11 ? 0 : prev + 1)}>››</button>
             </div>
             <div className="cal-grid">
-              {cal.dayNames.map((dn) => <div className="cal-dn" key={dn}>{dn}</div>)}
+              {cal.dayNames.map((dn, i) => (
+                <div
+                  className="cal-dn"
+                  key={dn}
+                  style={{ color: i === 0 ? '#e0506a' : i === 6 ? '#4b9be0' : undefined }}
+                >
+                  {dn}
+                </div>
+              ))}
               {cal.cells.map((cell, idx) => {
                 if (cell.type === 'prev' || cell.type === 'next') return <div className="cal-cell other" key={idx}><div className="cal-n">{cell.dateNumber}</div></div>;
+                const dow = cell.dateKey ? new Date(cell.dateKey).getDay() : -1;
+                const closed = dow === 2;
                 return (
-                  <div className={`cal-cell${cell.isToday ? ' today' : ''}`} key={cell.dateKey}>
-                    <div className="cal-n">{cell.day}</div>
-                    {cell.myShift ? (
+                  <div className={`cal-cell${cell.isToday ? ' today' : ''}${closed ? ' closed' : ''}`} key={cell.dateKey} style={closed ? { background: '#dcf6e5' } : undefined}>
+                    <div className="cal-n" style={{ color: dow === 0 ? '#e0506a' : dow === 6 ? '#4b9be0' : undefined }}>{cell.day}</div>
+                    {closed ? (
+                      <div style={{ fontSize: '10px', color: '#2f9e57', fontWeight: 600, textAlign: 'center', marginTop: '2px' }}>定休日</div>
+                    ) : cell.myShift ? (
                       <div className="cal-ev cal-ev-me">{cell.myShift.s.slice(0, 5)}-{cell.myShift.e.slice(0, 5)}</div>
                     ) : cell.dayShifts.slice(0, 2).map((shift: Shift) => {
                       const u = users.find((it) => it.id === shift.uid) ?? { ini: '?' };

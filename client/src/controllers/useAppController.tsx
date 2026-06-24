@@ -1,11 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Role, Priority, TaskStatus, User, Shift, Task, GachaLog, Notification, BusinessInfo, USERS_INITIAL, SHIFTS_INITIAL, TASKS_INITIAL, BUSINESS_INFO_INITIAL } from '../models';
+import { Role, Priority, TaskStatus, User, Shift, ShiftPattern, Task, GachaLog, Notification, BusinessInfo, USERS_INITIAL, SHIFTS_INITIAL, SHIFT_PATTERNS_INITIAL, TASKS_INITIAL, BUSINESS_INFO_INITIAL } from '../models';
 
 export default function useAppController() {
   const [loginUserId, setLoginUserId] = useState<number | ''>('');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(USERS_INITIAL);
   const [shifts, setShifts] = useState<Shift[]>(SHIFTS_INITIAL);
+  const [shiftPatternsMap, setShiftPatternsMap] = useState<Record<number, ShiftPattern[]>>({});
+  const shiftPatterns = currentUser
+    ? (shiftPatternsMap[currentUser.id] ?? SHIFT_PATTERNS_INITIAL)
+    : SHIFT_PATTERNS_INITIAL;
+  const setShiftPatterns: React.Dispatch<React.SetStateAction<ShiftPattern[]>> = (action) => {
+    if (!currentUser) return;
+    const uid = currentUser.id;
+    setShiftPatternsMap((prev) => {
+      const current = prev[uid] ?? SHIFT_PATTERNS_INITIAL;
+      const next = typeof action === 'function' ? action(current) : action;
+      return { ...prev, [uid]: next };
+    });
+  };
   const [tasks, setTasks] = useState<Task[]>(TASKS_INITIAL);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(BUSINESS_INFO_INITIAL);
   const [gLog, setGLog] = useState<GachaLog[]>([]);
@@ -14,7 +27,7 @@ export default function useAppController() {
   const [cy, setCy] = useState(2025);
   const [cm, setCm] = useState(5);
   const [tFilter, setTFilter] = useState<TaskStatus | 'all'>('all');
-  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'task' | 'gacha' | 'business-info' | 'staff' | 'notifications'>('dashboard');
+  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'shift-request' | 'task' | 'gacha' | 'business-info' | 'staff' | 'notifications'>('dashboard');
   const [modal, setModal] = useState<string | null>(null);
   const [toastText, setToastText] = useState('');
   const [gachaLock, setGachaLock] = useState(false);
@@ -33,6 +46,7 @@ export default function useAppController() {
   const [ctXp, setCtXp] = useState(50);
   const [asName, setAsName] = useState('');
   const [asRole, setAsRole] = useState<Role>('part');
+  const [asSalary, setAsSalary] = useState<number>(1050);
   const isMgr = currentUser?.role === 'manager';
   const isStf = currentUser && (currentUser.role === 'manager' || currentUser.role === 'staff');
 
@@ -233,7 +247,7 @@ export default function useAppController() {
   const handleShiftRequestSubmit = (currentUserParam: User | null, date: string, s: string, e: string, setShiftsFn: (fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => {
     if (!date||!s||!e){toastFn('日付と時間を入力してください');return;}
     if (!currentUserParam) return;
-    setShiftsFn((prev:any)=>[...prev,{id:Date.now(),uid:currentUserParam.id,date,s,e,st:'request',isOff:reqOff}]);
+    setShiftsFn((prev:any)=>[...prev.filter((sh:any)=>!(sh.uid===currentUserParam.id&&sh.date===date&&sh.st==='request')),{id:Date.now(),uid:currentUserParam.id,date,s,e,st:'request',isOff:reqOff}]);
     setModalFn(null);toastFn('シフト希望を提出しました');
   };
 
@@ -316,9 +330,16 @@ export default function useAppController() {
     } else { toastFn('却下しました'); }
   };
 
-  const handleStaffCreate = (asNameParam:string, asRoleParam:Role, setUsersFn:(fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => {
+  const handleStaffCreate = (asNameParam:string, asRoleParam:Role, asSalaryParam:number, setUsersFn:(fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => {
     if (!asNameParam.trim()){ toastFn('名前を入力してください'); return; }
-    setUsersFn((prev:any)=>[...prev,{ id: Date.now(), name: asNameParam.trim(), role: asRoleParam, xp:0, ini: asNameParam.trim().charAt(0)||'S' }]);
+    setUsersFn((prev: User[]) => {
+      const newId = prev.length > 0 ? Math.max(...prev.map((u) => u.id)) + 1 : 1;
+      const password = `pass${String(newId).padStart(4, '0')}`;
+      const salaryFields = asRoleParam === 'part'
+        ? { hourlyWage: asSalaryParam }
+        : { monthlySalary: asSalaryParam };
+      return [...prev, { id: newId, name: asNameParam.trim(), role: asRoleParam, xp: 0, ini: asNameParam.trim().charAt(0) || 'S', password, ...salaryFields }];
+    });
     setModalFn(null); toastFn('スタッフを追加しました');
   };
 
@@ -331,14 +352,14 @@ export default function useAppController() {
 
   return {
     loginUserId, setLoginUserId, currentUser, setCurrentUser,
-    users, setUsers, shifts, setShifts, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
+    users, setUsers, shifts, setShifts, shiftPatterns, setShiftPatterns, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, gachaLock, setGachaLock,
     notificationOpen, setNotificationOpen, notifications, setNotifications, unreadCount, toggleNotif, readNotif, clearNotifs, handleNotificationAction,
     reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
-    asName, setAsName, asRole, setAsRole,
+    asName, setAsName, asRole, setAsRole, asSalary, setAsSalary,
     toast, handleLogin, logout, handleNav, isMgr, isStf,
     activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,

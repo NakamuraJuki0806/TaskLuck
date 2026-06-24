@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import './App.css';
-import { Role, Priority, TaskStatus, User, Shift, Task, Notification } from './models';
+import { Role, Priority, TaskStatus, User, Shift, ShiftPattern, Task, Notification } from './models';
 import useAppController from './controllers/useAppController';
 import { AuthView, DashboardView, ShiftView, TaskView, GachaView, BusinessInfoView, StaffView, NotificationPanel } from './views';
+import ShiftRequestScreen from './views/ShiftRequestScreen';
 
 const ROLE_LABELS: Record<Role, string> = {
   manager: '店長',
@@ -54,14 +55,14 @@ export default function App() {
   const controller = useAppController();
   const {
     loginUserId, setLoginUserId, currentUser, setCurrentUser,
-    users, setUsers, shifts, setShifts, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
+    users, setUsers, shifts, setShifts, shiftPatterns, setShiftPatterns, tasks, setTasks, businessInfo, updateBusinessInfo, resetBusinessInfo, gLog, setGLog,
     cy, setCy, cm, setCm, tFilter, setTFilter, activePage, setActivePage, modal, setModal,
     toastText, gachaLock, setGachaLock,
     notificationOpen, notifications, unreadCount, toggleNotif, readNotif, clearNotifs, handleNotificationAction,
     reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
-    asName, setAsName, asRole, setAsRole,
+    asName, setAsName, asRole, setAsRole, asSalary, setAsSalary,
     toast, handleLogin, logout, handleNav, isMgr, isStf,
     activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
@@ -183,7 +184,7 @@ export default function App() {
               <ShiftView
                 isActive={activePage === 'shift'}
                 isMgr={isMgr}
-                onOpenShiftRequest={() => setModal('modal-shift-req')}
+                onOpenShiftRequest={() => handleNav('shift-request')}
                 onOpenShiftCreate={() => { setModal('modal-cs'); setCsDate(todayIso); }}
                 cal={cal}
                 currentMonthLabel={currentMonthLabel}
@@ -202,6 +203,38 @@ export default function App() {
                 setCsEnd={setCsEnd}
                 onShiftRequestSubmit={() => handleShiftRequestSubmit(currentUser, reqDate, reqStart, reqEnd, setShifts, setModal, toast)}
                 onShiftCreateSubmit={() => handleShiftCreateSubmit(csUid, csDate, csStart, csEnd, setShifts, setModal, toast)}
+                businessInfo={businessInfo}
+              />
+
+              <ShiftRequestScreen
+                isActive={activePage === 'shift-request'}
+                currentUser={currentUser}
+                cal={cal}
+                currentMonthLabel={currentMonthLabel}
+                setCm={setCm}
+                users={users}
+                shiftPatterns={shiftPatterns}
+                setShiftPatterns={setShiftPatterns}
+                reqDate={reqDate}
+                setReqDate={setReqDate}
+                onSubmit={(entries) => {
+                  if (!currentUser) return;
+                  const monthPrefix = `${cy}-${String(cm + 1).padStart(2, '0')}-`;
+                  const newShifts = entries
+                    .map((entry) => {
+                      const pattern = shiftPatterns.find((p) => p.id === entry.patternId);
+                      if (!pattern) return null;
+                      return { id: Date.now() + Math.random(), uid: currentUser.id, date: entry.date, s: pattern.workStart, e: pattern.workEnd, st: 'request' as const, isOff: false };
+                    })
+                    .filter(Boolean) as any[];
+                  setShifts((prev) => [
+                    ...prev.filter((sh) => !(sh.uid === currentUser.id && sh.date.startsWith(monthPrefix) && sh.st === 'request')),
+                    ...newShifts,
+                  ]);
+                  toast('シフト希望を提出しました');
+                  handleNav('shift');
+                }}
+                onCancel={() => handleNav('shift')}
               />
 
               {currentUser?.role !== 'part' ? (
@@ -239,8 +272,9 @@ export default function App() {
               <StaffView
                 isActive={activePage === 'staff'}
                 users={users}
+                setUsers={setUsers}
                 staffStats={staffStatsObj}
-                onOpenStaffModal={() => setModal('modal-as')}
+                onOpenStaffModal={() => { setAsName(''); setAsRole('part'); setAsSalary(1050); setModal('modal-as'); }}
               />
             </main>
           </div>
@@ -261,23 +295,7 @@ export default function App() {
         />
       ) : null}
 
-      <div className={`overlay ${modal === 'modal-shift-req' ? 'open' : ''}`} id="modal-shift-req" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
-        <div className="modal">
-          <h3>シフト希望を提出</h3>
-          <div className="mfg"><label>日付</label><input type="date" value={reqDate} onChange={(event) => setReqDate(event.target.value)} /></div>
-          <div className="mfg"><label>開始時間</label><input type="time" value={reqStart} onChange={(event) => setReqStart(event.target.value)} /></div>
-          <div className="mfg"><label>終了時間</label><input type="time" value={reqEnd} onChange={(event) => setReqEnd(event.target.value)} /></div>
-          <div className="mfg"><label>希望休（出勤不可）</label><select value={reqOff ? 'yes' : 'no'} onChange={(event) => setReqOff(event.target.value === 'yes')}>
-            <option value="no">いいえ</option>
-            <option value="yes">はい（この日は出勤不可）</option>
-          </select></div>
-          <div className="mfg"><label>備考</label><input type="text" value={reqNote} onChange={(event) => setReqNote(event.target.value)} placeholder="任意" /></div>
-          <div className="mf">
-            <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
-            <button className="btn btn-dark" type="button" onClick={() => handleShiftRequestSubmit(currentUser, reqDate, reqStart, reqEnd, setShifts, setModal, toast)}>提出</button>
-          </div>
-        </div>
-      </div>
+
 
       <div className={`overlay ${modal === 'modal-cs' ? 'open' : ''}`} id="modal-cs" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
         <div className="modal">
@@ -317,13 +335,14 @@ export default function App() {
         <div className="modal">
           <h3>スタッフを追加</h3>
           <div className="mfg"><label>名前</label><input type="text" value={asName} onChange={(event) => setAsName(event.target.value)} placeholder="山田 太郎" /></div>
-          <div className="mfg"><label>役割</label><select value={asRole} onChange={(event) => setAsRole(event.target.value as Role)}>
+          <div className="mfg"><label>役割</label><select value={asRole} onChange={(event) => { setAsRole(event.target.value as Role); setAsSalary(event.target.value === 'part' ? 1050 : 250000); }}>
             <option value="part">アルバイト</option>
             <option value="staff">社員</option>
           </select></div>
+          <div className="mfg"><label>{asRole === 'part' ? '時給（円）' : '月給（円）'}</label><input type="number" value={asSalary} min={0} step={asRole === 'part' ? 50 : 10000} onChange={(event) => setAsSalary(Number(event.target.value))} /></div>
           <div className="mf">
             <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
-            <button className="btn btn-dark" type="button" onClick={() => handleStaffCreate(asName, asRole, setUsers, setModal, toast)}>追加</button>
+            <button className="btn btn-dark" type="button" onClick={() => handleStaffCreate(asName, asRole, asSalary, setUsers, setModal, toast)}>追加</button>
           </div>
         </div>
       </div>

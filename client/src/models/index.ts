@@ -3,12 +3,23 @@ export type ShiftStatus = 'confirmed' | 'request';
 export type TaskStatus = 'pending' | 'in_progress' | 'review' | 'done';
 export type Priority = 'high' | 'mid' | 'low';
 
+export interface ExtraWage {
+  id: number;
+  title: string;
+  amount: number;
+  _new?: boolean;
+}
+
 export interface User {
   id: number;
   name: string;
   role: Role;
   xp: number;
   ini: string;
+  password: string;
+  hourlyWage?: number;
+  extraWages?: ExtraWage[];
+  monthlySalary?: number;
 }
 
 export interface Shift {
@@ -19,6 +30,15 @@ export interface Shift {
   e: string;
   st: ShiftStatus;
   isOff?: boolean;
+}
+
+export interface ShiftPattern {
+  id: number;
+  title: string;
+  workStart: string;
+  workEnd: string;
+  breakTime: number;
+  memo: string;
 }
 
 export interface Task {
@@ -129,11 +149,11 @@ export const BUSINESS_INFO_INITIAL: BusinessInfo = {
   ],
 };
 export const USERS_INITIAL: User[] = [
-  { id: 1, name: '田中 店長', role: 'manager', xp: 0, ini: '田' },
-  { id: 2, name: '佐藤 花子', role: 'staff', xp: 320, ini: '佐' },
-  { id: 3, name: '鈴木 一郎', role: 'part', xp: 180, ini: '鈴' },
-  { id: 4, name: '高橋 美咲', role: 'part', xp: 90, ini: '高' },
-  { id: 5, name: '山田 健太', role: 'part', xp: 230, ini: '山' },
+  { id: 1, name: '田中 店長', role: 'manager', xp: 0, ini: '田', password: 'pass0001', monthlySalary: 350000 },
+  { id: 2, name: '佐藤 花子', role: 'staff', xp: 320, ini: '佐', password: 'pass0002', monthlySalary: 250000 },
+  { id: 3, name: '鈴木 一郎', role: 'part', xp: 180, ini: '鈴', password: 'pass0003', hourlyWage: 1100 },
+  { id: 4, name: '高橋 美咲', role: 'part', xp: 90, ini: '高', password: 'pass0004', hourlyWage: 1050 },
+  { id: 5, name: '山田 健太', role: 'part', xp: 230, ini: '山', password: 'pass0005', hourlyWage: 1100 },
 ];
 
 export const SHIFTS_INITIAL: Shift[] = [
@@ -153,4 +173,9 @@ export const TASKS_INITIAL: Task[] = [
   { id: 4, name: 'バックヤード片付け', desc: '段ボールをまとめて廃棄場所へ', pri: 'mid', xp: 60, st: 'pending', to: null, by: 1 },
   { id: 5, name: 'レジ補充', desc: 'つり銭用コインの補充', pri: 'high', xp: 70, st: 'done', to: 5, by: 2 },
   { id: 6, name: '窓ふき', desc: '店舗入口の窓を清掃', pri: 'low', xp: 40, st: 'pending', to: null, by: 1 },
+];
+
+export const SHIFT_PATTERNS_INITIAL: ShiftPattern[] = [
+  { id: 1, title: 'パターンA', workStart: '17:00', workEnd: '21:00', breakTime: 0, memo: '平日用' },
+  { id: 2, title: 'パターンB', workStart: '13:00', workEnd: '21:00', breakTime: 60, memo: '休日用' },
 ];
