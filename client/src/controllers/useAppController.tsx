@@ -46,6 +46,7 @@ export default function useAppController() {
   const [ctXp, setCtXp] = useState(50);
   const [asName, setAsName] = useState('');
   const [asRole, setAsRole] = useState<Role>('part');
+  const [asSalary, setAsSalary] = useState<number>(1050);
   const isMgr = currentUser?.role === 'manager';
   const isStf = currentUser && (currentUser.role === 'manager' || currentUser.role === 'staff');
 
@@ -329,9 +330,16 @@ export default function useAppController() {
     } else { toastFn('却下しました'); }
   };
 
-  const handleStaffCreate = (asNameParam:string, asRoleParam:Role, setUsersFn:(fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => {
+  const handleStaffCreate = (asNameParam:string, asRoleParam:Role, asSalaryParam:number, setUsersFn:(fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => {
     if (!asNameParam.trim()){ toastFn('名前を入力してください'); return; }
-    setUsersFn((prev:any)=>[...prev,{ id: Date.now(), name: asNameParam.trim(), role: asRoleParam, xp:0, ini: asNameParam.trim().charAt(0)||'S' }]);
+    setUsersFn((prev: User[]) => {
+      const newId = prev.length > 0 ? Math.max(...prev.map((u) => u.id)) + 1 : 1;
+      const password = `pass${String(newId).padStart(4, '0')}`;
+      const salaryFields = asRoleParam === 'part'
+        ? { hourlyWage: asSalaryParam }
+        : { monthlySalary: asSalaryParam };
+      return [...prev, { id: newId, name: asNameParam.trim(), role: asRoleParam, xp: 0, ini: asNameParam.trim().charAt(0) || 'S', password, ...salaryFields }];
+    });
     setModalFn(null); toastFn('スタッフを追加しました');
   };
 
@@ -351,7 +359,7 @@ export default function useAppController() {
     reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
-    asName, setAsName, asRole, setAsRole,
+    asName, setAsName, asRole, setAsRole, asSalary, setAsSalary,
     toast, handleLogin, logout, handleNav, isMgr, isStf,
     activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
