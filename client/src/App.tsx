@@ -203,6 +203,7 @@ export default function App() {
                 setCsEnd={setCsEnd}
                 onShiftRequestSubmit={() => handleShiftRequestSubmit(currentUser, reqDate, reqStart, reqEnd, setShifts, setModal, toast)}
                 onShiftCreateSubmit={() => handleShiftCreateSubmit(csUid, csDate, csStart, csEnd, setShifts, setModal, toast)}
+                businessInfo={businessInfo}
               />
 
               <ShiftRequestScreen
