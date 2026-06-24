@@ -18,7 +18,9 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
   const [rankingTab, setRankingTab] = useState<'xp' | 'completed'>('xp');
 
   const getRankingData = (tab: 'xp' | 'completed') => {
-    const ranking = users.map((user) => {
+    // アルバイト（part）ユーザーのみでランキングを作成
+    const partUsers = users.filter((user) => user.role === 'part');
+    const ranking = partUsers.map((user) => {
       const completedTasks = tasks.filter((t) => t.to === user.id && t.st === 'done').length;
       return {
         ...user,
@@ -33,7 +35,7 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
     }
   };
 
-  const rankingData = isMgr ? getRankingData(rankingTab) : [];
+  const rankingData = getRankingData(rankingTab);
   const maxXp = rankingData.length > 0 ? Math.max(...rankingData.map((u) => u.xp ?? 0)) : 100;
   const maxCompleted = rankingData.length > 0 ? Math.max(...rankingData.map((u) => u.completedCount ?? 0)) : 10;
 
@@ -59,8 +61,8 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
         )
       }</div>
       {isMgr ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-          <div className="card"><div className="sec-lbl">今日のシフト</div><div id="dt-shifts">{
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px', alignItems: 'stretch' }}>
+          <div className="card" style={{ display: 'flex', flexDirection: 'column' }}><div className="sec-lbl">今日のシフト</div><div id="dt-shifts" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>{
             !todayShifts || todayShifts.length === 0 ? (
               <div style={{ color: '#aaa', fontSize: '12px', padding: '8px 0' }}>本日のシフトはありません</div>
             ) : todayShifts.map(({ shift, user, isMine }) => (
@@ -75,8 +77,8 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
               </div>
             ))
           }</div></div>
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexShrink: 0 }}>
               <div className="sec-lbl" style={{ margin: 0 }}>ランキング</div>
               <div style={{ display: 'flex', gap: '2px', borderBottom: '1px solid #f0f0f0' }}>
                 <button 
@@ -117,7 +119,7 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
                 </button>
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0', flex: 1, overflow: 'auto', minHeight: 0 }}>
               {rankingData.length === 0 ? (
                 <div style={{ color: '#aaa', fontSize: '12px', padding: '8px 0' }}>ユーザーがいません</div>
               ) : rankingData.map((user, index) => (
@@ -175,22 +177,122 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
           </div>
         </div>
       ) : (
-        <div className="dash-grid">
-          <div className="card"><div className="sec-lbl">今日のシフト</div><div id="dt-shifts">{
-            !todayShifts || todayShifts.length === 0 ? (
-              <div style={{ color: '#aaa', fontSize: '12px', padding: '8px 0' }}>本日のシフトはありません</div>
-            ) : todayShifts.map(({ shift, user, isMine }) => (
-              <div className="ti" key={shift.id}>
-                <div className="sb-avatar" style={{ width: '26px', height: '26px', fontSize: '10px', flexShrink: 0 }}>{user.ini ?? '?'}</div>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: isMine ? 500 : 400 }}>
-                    {user.name}{isMine ? ' ' : ''}{isMine ? <span className="b b-gray" style={{ fontSize: '10px' }}>自分</span> : null}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'stretch' }}>
+            <div className="card" style={{ display: 'flex', flexDirection: 'column' }}><div className="sec-lbl">今日のシフト</div><div id="dt-shifts" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>{
+              !todayShifts || todayShifts.length === 0 ? (
+                <div style={{ color: '#aaa', fontSize: '12px', padding: '8px 0' }}>本日のシフトはありません</div>
+              ) : todayShifts.map(({ shift, user, isMine }) => (
+                <div className="ti" key={shift.id}>
+                  <div className="sb-avatar" style={{ width: '26px', height: '26px', fontSize: '10px', flexShrink: 0 }}>{user.ini ?? '?'}</div>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: isMine ? 500 : 400 }}>
+                      {user.name}{isMine ? ' ' : ''}{isMine ? <span className="b b-gray" style={{ fontSize: '10px' }}>自分</span> : null}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#888' }}>{shift.s}–{shift.e}</div>
                   </div>
-                  <div style={{ fontSize: '11px', color: '#888' }}>{shift.s}–{shift.e}</div>
                 </div>
+              ))
+            }</div></div>
+            <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexShrink: 0 }}>
+              <div className="sec-lbl" style={{ margin: 0 }}>ランキング</div>
+              <div style={{ display: 'flex', gap: '2px', borderBottom: '1px solid #f0f0f0' }}>
+                <button 
+                  type="button"
+                  onClick={() => setRankingTab('xp')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    background: rankingTab === 'xp' ? '#1a1a1a' : 'transparent',
+                    color: rankingTab === 'xp' ? '#fff' : '#888',
+                    border: 'none',
+                    borderRadius: '4px 4px 0 0',
+                    fontFamily: 'inherit',
+                    fontWeight: rankingTab === 'xp' ? 500 : 400,
+                    transition: 'all 0.12s'
+                  }}
+                >
+                  経験値
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setRankingTab('completed')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    background: rankingTab === 'completed' ? '#1a1a1a' : 'transparent',
+                    color: rankingTab === 'completed' ? '#fff' : '#888',
+                    border: 'none',
+                    borderRadius: '4px 4px 0 0',
+                    fontFamily: 'inherit',
+                    fontWeight: rankingTab === 'completed' ? 500 : 400,
+                    transition: 'all 0.12s'
+                  }}
+                >
+                  完了数
+                </button>
               </div>
-            ))
-          }</div></div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0', flex: 1, overflow: 'auto', minHeight: 0 }}>
+              {rankingData.length === 0 ? (
+                <div style={{ color: '#aaa', fontSize: '12px', padding: '8px 0' }}>ユーザーがいません</div>
+              ) : rankingData.map((user, index) => (
+                <div key={user.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 0', borderBottom: index < 4 ? '1px solid #f0f0f0' : 'none' }}>
+                  <div style={{ 
+                    width: '28px', 
+                    height: '28px', 
+                    borderRadius: '50%', 
+                    background: index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : '#f0f0f0',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: index < 3 ? '#fff' : '#999',
+                    flexShrink: 0
+                  }}>
+                    {index + 1}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 500, color: '#1a1a1a', marginBottom: '4px' }}>{user.name}</div>
+                    {rankingTab === 'xp' ? (
+                      <>
+                        <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#888', marginBottom: '4px' }}>
+                          <span>XP: <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{user.xp ?? 0}</span></span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          <div style={{ width: '100%', maxWidth: '120px', height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#bc29ea', width: `${((user.xp ?? 0) / maxXp) * 100}%`, left: 0, top: 0 }} />
+                          </div>
+                          <span style={{ fontSize: '10px', color: '#999', minWidth: '40px', textAlign: 'right' }}>
+                            {user.xp ?? 0}/{maxXp}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#888', marginBottom: '4px' }}>
+                          <span>完了: <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{user.completedCount ?? 0}</span></span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          <div style={{ width: '100%', maxWidth: '120px', height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#3b82f6', width: `${((user.completedCount ?? 0) / Math.max(maxCompleted, 1)) * 100}%`, left: 0, top: 0 }} />
+                          </div>
+                          <span style={{ fontSize: '10px', color: '#999', minWidth: '40px', textAlign: 'right' }}>
+                            {user.completedCount ?? 0}/{maxCompleted}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          </div>
           <div className="card"><div className="sec-lbl">タスク状況</div><div id="dt-tasks">{
             !dashTasks || dashTasks.length === 0 ? (
               <div style={{ color: '#aaa', fontSize: '12px', padding: '8px 0' }}>タスクはありません</div>
