@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { Shift, User } from '../models';
+import { Shift, User, BusinessInfo } from '../models';
 
 type ShiftRow = { shift: Shift; user: User | { name: string; ini?: string }; badge: { label: string; cls: string } };
 
@@ -25,9 +25,12 @@ type ShiftViewProps = {
   setCsEnd: (value: string) => void;
   onShiftRequestSubmit: () => void;
   onShiftCreateSubmit: () => void;
+  businessInfo: BusinessInfo;
 };
 
-export function ShiftView({ isActive, isMgr, onOpenShiftRequest, onOpenShiftCreate, cal, currentMonthLabel, setCm, shiftRows, users, toast, setShifts, csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd, onShiftRequestSubmit, onShiftCreateSubmit }: ShiftViewProps) {
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+
+export function ShiftView({ isActive, isMgr, onOpenShiftRequest, onOpenShiftCreate, cal, currentMonthLabel, setCm, shiftRows, users, toast, setShifts, csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd, onShiftRequestSubmit, onShiftCreateSubmit, businessInfo }: ShiftViewProps) {
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-shift">
       <div className="ph">
