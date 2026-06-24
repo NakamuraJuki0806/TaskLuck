@@ -3,6 +3,9 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
+      frontFamily: {
+        sans: ['"Noto Sans JP"', 'sans-serif']
+      },
       colors: {
         ink: '#0f172a',
         brand: '#0f766e',
