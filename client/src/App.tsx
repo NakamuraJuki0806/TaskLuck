@@ -76,14 +76,14 @@ const handleDeleteTaskApi = async (taskId: string) => {
   if (!window.confirm("本当に削除しますか？")) return;
 
   try {
-    const res = await fetch(`http://localhost:5000/api/tasks/${taskId}`, {
+    const res = await fetch(`http://localhost:5001/api/tasks/${taskId}`, {
       method: 'DELETE',
     });
 
     if (res.ok) {
       toast('削除しました');
       // 削除が成功したら、再度データを全件取得し直す
-      const fetchRes = await fetch('http://localhost:5000/api/tasks');
+      const fetchRes = await fetch('http://localhost:5001/api/tasks');
       const result = await fetchRes.json();
       if (result.success) {
         const formatted = result.data.map((t: any) => ({
@@ -106,23 +106,15 @@ const handleDeleteTaskApi = async (taskId: string) => {
   }
 };
 
-  useEffect(() => {
+ useEffect(() => {
     const fetchTasksFromDB = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/tasks');
-        const result = await response.json();
-        if (result.success) {
-          const formattedTasks = result.data.map((t: any) => ({
-            id: t._id,
-            name: t.task_name,
-            desc: t.description,
-            pri: t.priority.toLowerCase() as Priority,
-            xp: t.xp,
-            st: t.task_type === 'NORMAL' ? 'pending' : 'done',
-            to: null,
-            inPool: t.is_gacha_target
-          }));
-          setTasks(formattedTasks);
+        const response = await fetch('http://localhost:5001/api/tasks');
+        const tasksArray = await response.json(); // 直接配列として受け取る
+        
+        // 配列であることを確認して状態を更新
+        if (Array.isArray(tasksArray)) {
+          setTasks(tasksArray);
         }
       } catch (e) {
         console.error("データ取得エラー:", e);
@@ -392,15 +384,15 @@ const handleDeleteTaskApi = async (taskId: string) => {
               type="button"
               onClick={async () => {
                 // 1. APIにPOST送信
-                const res = await fetch('http://localhost:5000/api/tasks', {
+                const res = await fetch('http://localhost:5001/api/tasks', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
-                    task_name: ctName,
-                    description: ctDesc,
-                    priority: ctPri.toUpperCase(),
+                    name: ctName,
+                    desc: ctDesc,
+                    pri: ctPri,
                     xp: ctXp,
-                    is_gacha_target: true
+                    inPool: true
                   })
                 });
 
@@ -408,16 +400,10 @@ const handleDeleteTaskApi = async (taskId: string) => {
                   toast('タスクを追加しました');
                   setModal(null);
                   // 2. 画面を更新するために、もう一度データを取り直す
-                  const fetchRes = await fetch('http://localhost:5000/api/tasks');
-                  const result = await fetchRes.json();
-                  if (result.success) {
-                    const formatted = result.data.map((t: any) => ({
-                      id: t._id, name: t.task_name, desc: t.description,
-                      pri: t.priority.toLowerCase() as Priority, xp: t.xp,
-                      st: t.task_type === 'NORMAL' ? 'pending' : 'done',
-                      to: null, inPool: t.is_gacha_target
-                    }));
-                    setTasks(formatted);
+                  const fetchRes = await fetch('http://localhost:5001/api/tasks');
+                  const tasksArray = await fetchRes.json();
+                  if (Array.isArray(tasksArray)) {
+                    setTasks(tasksArray); // バックエンドから届いた整形済みの配列をそのままセット
                   }
                 }
               }}
@@ -432,7 +418,7 @@ const handleDeleteTaskApi = async (taskId: string) => {
         <div className="modal">
           <h3>スタッフを追加</h3>
           <div className="mfg"><label>名前</label><input type="text" value={asName} onChange={(event) => setAsName(event.target.value)} placeholder="山田 太郎" /></div>
-          <div className="mfg"><label>役割</label><select value={asRole} onChange={(event) => { setAsRole(event.target.value as Role); setAsSalary(event.target.value === 'part' ? 1050 : 250000); }}>
+          <div className="mfg"><label>役割</label><select value={asRole} onChange={(event) => { setAsRole(event.target.value as Role); setAsSalary(event.target.value === 'part' ? 1050 : 250010); }}>
             <option value="part">アルバイト</option>
             <option value="staff">社員</option>
           </select></div>

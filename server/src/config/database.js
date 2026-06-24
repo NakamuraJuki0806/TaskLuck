@@ -1,16 +1,36 @@
-import mongoose from 'mongoose';
+import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
+import path from 'path';
 
-let conn = null;
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-// export const という形で名前付きエクスポートにします
+const url = 'mongodb+srv://harutsugu0528_db_user:7XPStHJXpgloVF2a@taskluckcluster.uvohavf.mongodb.net/taskluck?appName=TaskLuckCluster';
+const dbName = 'taskluck'; // あなたのデータベース名に合わせてください
+
+let client;
+let db;
+
 export const connectDatabase = async () => {
-  if (conn) return conn;
+  try {
+    if (db) return db;
+    
+    console.log('=> データベースに接続します...');
+    client = new MongoClient(url);
+    await client.connect();
+    
+    db = client.db(dbName);
+    console.log('MongoDB connection established successfully.');
+    return db;
+  } catch (error) {
+    console.error('MongoDB connection failed:', error.message);
+    throw error;
+  }
+};
 
-  const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error('MONGODB_URIが設定されていません。');
-
-  console.log('=> データベースに接続します...');
-  conn = mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 }).then(m => m);
-  await conn;
-  return conn;
+// コントローラーからDB操作用オブジェクトを呼び出すための関数
+export const getDb = () => {
+  if (!db) {
+    throw new Error('Database not initialized. Call connectDatabase first.');
+  }
+  return db;
 };
