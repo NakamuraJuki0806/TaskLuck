@@ -17,4 +17,4 @@ React(Vite + Tailwind CSS) のフロントエンドと、Node.js + Express の�
 ## デフォルト URL
 
 - フロントエンド: http://localhost:5173
-- バックエンド: http://localhost:5000
+- バックエンド: http://localhost:5001

@@ -3,35 +3,30 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { connectDatabase } from './src/config/database.js';
-import { healthRouter } from './src/routes/health.js';
-import tasksRouter from './src/routes/tasks.js';
-import gachaRouter from './src/routes/gacha.js';
-import gachaSettingsRouter from './src/routes/gacha-settings.js';
-import approvalRouter from './src/routes/approval.js';
-import staffRouter from './src/routes/staff.js';
-import notificationsRouter from './src/routes/notifications.js';
+import taskRoutes from './src/routes/tasks.js'; // パスは環境に合わせて調整
 
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = 5001;
 
+// 【重要】これがないとPOSTのJSONを受け取れません
+app.use(express.json()); 
 app.use(cors());
-app.use(express.json());
 app.use(morgan('dev'));
 
-app.use('/api/health', healthRouter);
-app.use('/api/tasks', tasksRouter);
-app.use('/api/gacha', gachaRouter);
-app.use('/api/gacha-settings', gachaSettingsRouter);
-app.use('/api/approval', approvalRouter);
-app.use('/api/staff', staffRouter);
-app.use('/api/notifications', notificationsRouter);
+// ルートの設定
+app.use('/api/tasks', taskRoutes);
 
-app.get('/api', (_req, res) => {
-  res.json({ message: 'TaskLuck API is running' });
+// エラーをターミナルに強制表示するミドルウェア（必ずルーティングの設定より下に書いてください）
+app.use((err, req, res, next) => {
+  console.error("====== サーバーエラー発生！！ ======");
+  console.error(err.stack); // これでエラーの具体的な場所（行数）がわかります
+  console.error("====================================");
+  res.status(500).json({ error: err.message });
 });
 
+// サーバー起動処理
 const startServer = async () => {
   try {
     await connectDatabase();
