@@ -3,12 +3,23 @@ export type ShiftStatus = 'confirmed' | 'request';
 export type TaskStatus = 'pending' | 'in_progress' | 'review' | 'done';
 export type Priority = 'high' | 'mid' | 'low';
 
+export interface ExtraWage {
+  id: number;
+  title: string;
+  amount: number;
+  _new?: boolean;
+}
+
 export interface User {
   id: number;
   name: string;
   role: Role;
   xp: number;
   ini: string;
+  password: string;
+  hourlyWage?: number;
+  extraWages?: ExtraWage[];
+  monthlySalary?: number;
 }
 
 export interface Shift {
@@ -138,11 +149,11 @@ export const BUSINESS_INFO_INITIAL: BusinessInfo = {
   ],
 };
 export const USERS_INITIAL: User[] = [
-  { id: 1, name: '田中 店長', role: 'manager', xp: 0, ini: '田' },
-  { id: 2, name: '佐藤 花子', role: 'staff', xp: 320, ini: '佐' },
-  { id: 3, name: '鈴木 一郎', role: 'part', xp: 180, ini: '鈴' },
-  { id: 4, name: '高橋 美咲', role: 'part', xp: 90, ini: '高' },
-  { id: 5, name: '山田 健太', role: 'part', xp: 230, ini: '山' },
+  { id: 1, name: '田中 店長', role: 'manager', xp: 0, ini: '田', password: 'pass0001', monthlySalary: 350000 },
+  { id: 2, name: '佐藤 花子', role: 'staff', xp: 320, ini: '佐', password: 'pass0002', monthlySalary: 250000 },
+  { id: 3, name: '鈴木 一郎', role: 'part', xp: 180, ini: '鈴', password: 'pass0003', hourlyWage: 1100 },
+  { id: 4, name: '高橋 美咲', role: 'part', xp: 90, ini: '高', password: 'pass0004', hourlyWage: 1050 },
+  { id: 5, name: '山田 健太', role: 'part', xp: 230, ini: '山', password: 'pass0005', hourlyWage: 1100 },
 ];
 
 export const SHIFTS_INITIAL: Shift[] = [
