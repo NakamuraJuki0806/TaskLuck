@@ -62,7 +62,7 @@ export default function App() {
     reqDate, setReqDate, reqStart, setReqStart, reqEnd, setReqEnd, reqOff, setReqOff, reqNote, setReqNote,
     csUid, setCsUid, csDate, setCsDate, csStart, setCsStart, csEnd, setCsEnd,
     ctName, setCtName, ctDesc, setCtDesc, ctPri, setCtPri, ctXp, setCtXp,
-    asName, setAsName, asRole, setAsRole,
+    asName, setAsName, asRole, setAsRole, asSalary, setAsSalary,
     toast, handleLogin, logout, handleNav, isMgr, isStf,
     activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
@@ -272,8 +272,9 @@ export default function App() {
               <StaffView
                 isActive={activePage === 'staff'}
                 users={users}
+                setUsers={setUsers}
                 staffStats={staffStatsObj}
-                onOpenStaffModal={() => setModal('modal-as')}
+                onOpenStaffModal={() => { setAsName(''); setAsRole('part'); setAsSalary(1050); setModal('modal-as'); }}
               />
             </main>
           </div>
@@ -334,13 +335,14 @@ export default function App() {
         <div className="modal">
           <h3>スタッフを追加</h3>
           <div className="mfg"><label>名前</label><input type="text" value={asName} onChange={(event) => setAsName(event.target.value)} placeholder="山田 太郎" /></div>
-          <div className="mfg"><label>役割</label><select value={asRole} onChange={(event) => setAsRole(event.target.value as Role)}>
+          <div className="mfg"><label>役割</label><select value={asRole} onChange={(event) => { setAsRole(event.target.value as Role); setAsSalary(event.target.value === 'part' ? 1050 : 250000); }}>
             <option value="part">アルバイト</option>
             <option value="staff">社員</option>
           </select></div>
+          <div className="mfg"><label>{asRole === 'part' ? '時給（円）' : '月給（円）'}</label><input type="number" value={asSalary} min={0} step={asRole === 'part' ? 50 : 10000} onChange={(event) => setAsSalary(Number(event.target.value))} /></div>
           <div className="mf">
             <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
-            <button className="btn btn-dark" type="button" onClick={() => handleStaffCreate(asName, asRole, setUsers, setModal, toast)}>追加</button>
+            <button className="btn btn-dark" type="button" onClick={() => handleStaffCreate(asName, asRole, asSalary, setUsers, setModal, toast)}>追加</button>
           </div>
         </div>
       </div>
