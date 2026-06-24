@@ -39,15 +39,17 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
   const maxXp = rankingData.length > 0 ? Math.max(...rankingData.map((u) => u.xp ?? 0)) : 100;
   const maxCompleted = rankingData.length > 0 ? Math.max(...rankingData.map((u) => u.completedCount ?? 0)) : 10;
 
+  const userTotalTasks = tasks.filter((t) => t.to === currentUser?.id).length;
+  const userCompletedTasks = tasks.filter((t) => t.to === currentUser?.id && t.st === 'done').length;
+  const taskCompletionRate = userTotalTasks > 0 ? Math.round((userCompletedTasks / userTotalTasks) * 100) : 0;
+
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-dashboard">
       <div className="ph">
         <div><div className="pt">ダッシュボード</div><div className="ps" id="dd">{new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</div></div>
       </div>
       <div className="stats" id="ds">{
-        isMgr ? (
-          null
-        ) : (
+        !isMgr && (
           <>
             <div className="sc"><div className="sl">レベル</div><div className="sv">Lv.{Math.floor((currentUser?.xp ?? 0) / 100) + 1}</div></div>
             <div className="sc"><div className="sl">合計 XP</div><div className="sv">{currentUser?.xp ?? 0}</div></div>
@@ -56,6 +58,11 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
               <div className="sl">次LVまで</div>
               <div className="sv" style={{ fontSize: '16px' }}>{(currentUser?.xp ?? 0) % 100}<span style={{ fontSize: '11px', color: '#aaa' }}>/100</span></div>
               <div className="xp-wrap"><div className="xp-bar" style={{ width: `${(currentUser?.xp ?? 0) % 100}%` }} /></div>
+            </div>
+            <div className="sc">
+              <div className="sl">タスク消化率</div>
+              <div className="sv">{taskCompletionRate}%</div>
+              <div className="xp-wrap"><div className="xp-bar" style={{ width: `${taskCompletionRate}%`, backgroundColor: '#3b82f6' }} /></div>
             </div>
           </>
         )
