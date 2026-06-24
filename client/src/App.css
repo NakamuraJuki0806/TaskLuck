@@ -52,7 +52,7 @@ main{flex:1;min-width:0;overflow-y:auto;width:100%}
 
 /* CARDS */
 .card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:18px 20px}
-.card+.card{margin-top:12px}
+
 
 /* STATS */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px}
