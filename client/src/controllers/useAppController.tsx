@@ -159,7 +159,7 @@ export default function useAppController() {
     { id: 'notifications', lbl: '通知', ic: 'bell' },
   ].filter((item) => {
     if (item.mgrOnly && !isMgr) return false;
-    if (item.partOnly && currentUser?.role === 'manager') return false;
+    if (item.partOnly && currentUser?.role !== 'part') return false;
     if (item.id === 'task' && currentUser?.role === 'part') return false;
     return true;
   }), [currentUser, isMgr]);
