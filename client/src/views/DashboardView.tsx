@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+﻿import { type ReactNode, useState } from 'react';
 import { Priority, TaskStatus, User, Shift, Task } from '../models';
 
 type DashboardViewProps = {
@@ -36,8 +36,10 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
   };
 
   const rankingData = getRankingData(rankingTab);
-  const maxXp = rankingData.length > 0 ? Math.max(...rankingData.map((u) => u.xp ?? 0)) : 100;
-  const maxCompleted = rankingData.length > 0 ? Math.max(...rankingData.map((u) => u.completedCount ?? 0)) : 10;
+  const maxXp = rankingData.length > 0 ? Math.max(...rankingData.map((u) => u.xp ?? 0)) : 0;
+  const maxCompleted = rankingData.length > 0 ? Math.max(...rankingData.map((u) => u.completedCount ?? 0)) : 0;
+  const xpScaleMax = Math.max(maxXp, 1);
+  const completedScaleMax = Math.max(maxCompleted, 1);
 
   const allCompletedTasks = tasks.filter((t) => t.st === 'done').length;
   const taskCompletionRate = tasks.length > 0 ? Math.round((allCompletedTasks / tasks.length) * 100) : 0;
@@ -158,12 +160,12 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
                         <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#888', marginBottom: '4px' }}>
                           <span>XP: <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{user.xp ?? 0}</span></span>
                         </div>
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          <div style={{ width: '100%', maxWidth: '120px', height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
-                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#bc29ea', width: `${((user.xp ?? 0) / maxXp) * 100}%`, left: 0, top: 0 }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ flex: 1, minWidth: 0, height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#bc29ea', width: `${Math.min(((user.xp ?? 0) / xpScaleMax) * 100, 100)}%`, left: 0, top: 0 }} />
                           </div>
-                          <span style={{ fontSize: '10px', color: '#999', minWidth: '40px', textAlign: 'right' }}>
-                            {user.xp ?? 0}/{maxXp}
+                          <span style={{ width: '40px', textAlign: 'right', fontSize: '10px', color: '#999' }}>
+                            {user.xp ?? 0}
                           </span>
                         </div>
                       </>
@@ -172,12 +174,12 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
                         <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#888', marginBottom: '4px' }}>
                           <span>完了: <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{user.completedCount ?? 0}</span></span>
                         </div>
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          <div style={{ width: '100%', maxWidth: '120px', height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
-                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#3b82f6', width: `${((user.completedCount ?? 0) / Math.max(maxCompleted, 1)) * 100}%`, left: 0, top: 0 }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ flex: 1, minWidth: 0, height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#3b82f6', width: `${Math.min(((user.completedCount ?? 0) / completedScaleMax) * 100, 100)}%`, left: 0, top: 0 }} />
                           </div>
-                          <span style={{ fontSize: '10px', color: '#999', minWidth: '40px', textAlign: 'right' }}>
-                            {user.completedCount ?? 0}/{maxCompleted}
+                          <span style={{ width: '40px', textAlign: 'right', fontSize: '10px', color: '#999' }}>
+                            {user.completedCount ?? 0}
                           </span>
                         </div>
                       </>
@@ -275,12 +277,12 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
                         <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#888', marginBottom: '4px' }}>
                           <span>XP: <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{user.xp ?? 0}</span></span>
                         </div>
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          <div style={{ width: '100%', maxWidth: '120px', height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
-                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#bc29ea', width: `${((user.xp ?? 0) / maxXp) * 100}%`, left: 0, top: 0 }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ flex: 1, minWidth: 0, height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#bc29ea', width: `${Math.min(((user.xp ?? 0) / xpScaleMax) * 100, 100)}%`, left: 0, top: 0 }} />
                           </div>
-                          <span style={{ fontSize: '10px', color: '#999', minWidth: '40px', textAlign: 'right' }}>
-                            {user.xp ?? 0}/{maxXp}
+                          <span style={{ width: '40px', textAlign: 'right', fontSize: '10px', color: '#999' }}>
+                            {user.xp ?? 0}
                           </span>
                         </div>
                       </>
@@ -289,12 +291,12 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
                         <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#888', marginBottom: '4px' }}>
                           <span>完了: <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{user.completedCount ?? 0}</span></span>
                         </div>
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          <div style={{ width: '100%', maxWidth: '120px', height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
-                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#3b82f6', width: `${((user.completedCount ?? 0) / Math.max(maxCompleted, 1)) * 100}%`, left: 0, top: 0 }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ flex: 1, minWidth: 0, height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#3b82f6', width: `${Math.min(((user.completedCount ?? 0) / completedScaleMax) * 100, 100)}%`, left: 0, top: 0 }} />
                           </div>
-                          <span style={{ fontSize: '10px', color: '#999', minWidth: '40px', textAlign: 'right' }}>
-                            {user.completedCount ?? 0}/{maxCompleted}
+                          <span style={{ width: '40px', textAlign: 'right', fontSize: '10px', color: '#999' }}>
+                            {user.completedCount ?? 0}
                           </span>
                         </div>
                       </>
@@ -338,3 +340,4 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
     </div>
   );
 }
+
