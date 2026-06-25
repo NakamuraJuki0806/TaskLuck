@@ -43,37 +43,54 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
 
   const allCompletedTasks = tasks.filter((t) => t.st === 'done').length;
   const taskCompletionRate = tasks.length > 0 ? Math.round((allCompletedTasks / tasks.length) * 100) : 0;
+  const isStaff = currentUser?.role === 'staff';
+  const isPart = currentUser?.role === 'part';
+
+  const renderRoleStats = () => {
+    if (isMgr) {
+      return (
+        <div className="stats" id="ds">
+          <div className="sc">
+            <div className="sl">全体タスク消化率</div>
+            <div className="sv">{taskCompletionRate}%</div>
+            <div className="xp-wrap"><div className="xp-bar" style={{ width: `${taskCompletionRate}%`, backgroundColor: '#3b82f6' }} /></div>
+          </div>
+        </div>
+      );
+    }
+
+    if (isPart) {
+      return (
+        <div className="stats" id="ds">
+          <div className="sc"><div className="sl">レベル</div><div className="sv">Lv.{Math.floor((currentUser?.xp ?? 0) / 100) + 1}</div></div>
+          <div className="sc"><div className="sl">合計 XP</div><div className="sv">{currentUser?.xp ?? 0}</div></div>
+          <div className="sc">
+            <div className="sl">次LVまで</div>
+            <div className="sv" style={{ fontSize: '16px' }}>{(currentUser?.xp ?? 0) % 100}<span style={{ fontSize: '11px', color: '#aaa' }}>/100</span></div>
+            <div className="xp-wrap"><div className="xp-bar" style={{ width: `${(currentUser?.xp ?? 0) % 100}%` }} /></div>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-dashboard">
       <div className="ph">
         <div><div className="pt">ダッシュボード</div><div className="ps" id="dd">{new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</div></div>
       </div>
-      <div className="stats" id="ds">{
-        isMgr ? (
+      {!isMgr && (
+        <div className="stats" id="ds-top" style={{ marginBottom: '12px' }}>
           <div className="sc">
             <div className="sl">全体タスク消化率</div>
             <div className="sv">{taskCompletionRate}%</div>
             <div className="xp-wrap"><div className="xp-bar" style={{ width: `${taskCompletionRate}%`, backgroundColor: '#3b82f6' }} /></div>
           </div>
-        ) : (
-          <>
-            <div className="sc"><div className="sl">レベル</div><div className="sv">Lv.{Math.floor((currentUser?.xp ?? 0) / 100) + 1}</div></div>
-            <div className="sc"><div className="sl">合計 XP</div><div className="sv">{currentUser?.xp ?? 0}</div></div>
-            <div className="sc"><div className="sl">進行中タスク</div><div className="sv">{dsObj.myTasks.length}</div></div>
-            <div className="sc">
-              <div className="sl">次LVまで</div>
-              <div className="sv" style={{ fontSize: '16px' }}>{(currentUser?.xp ?? 0) % 100}<span style={{ fontSize: '11px', color: '#aaa' }}>/100</span></div>
-              <div className="xp-wrap"><div className="xp-bar" style={{ width: `${(currentUser?.xp ?? 0) % 100}%` }} /></div>
-            </div>
-            <div className="sc">
-              <div className="sl">タスク消化率</div>
-              <div className="sv">{taskCompletionRate}%</div>
-              <div className="xp-wrap"><div className="xp-bar" style={{ width: `${taskCompletionRate}%`, backgroundColor: '#3b82f6' }} /></div>
-            </div>
-          </>
-        )
-      }</div>
+        </div>
+      )}
+      {renderRoleStats()}
       {isMgr ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px', alignItems: 'stretch' }}>
           <div className="card" style={{ display: 'flex', flexDirection: 'column' }}><div className="sec-lbl">今日のシフト</div><div id="dt-shifts" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>{

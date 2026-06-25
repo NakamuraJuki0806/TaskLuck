@@ -306,14 +306,16 @@ const handleDeleteTaskApi = async (taskId: string) => {
                   onOpenTaskModal={() => setModal('modal-ct')}
                 />
               ) : null}
-              <GachaView
-                isActive={activePage === 'gacha'}
-                gLog={gLog}
-                handleGacha={() => handleGacha(tasks, currentUser, setTasks, setGLog, toast, setGachaLock)}
-                handleCompleteGachaTask={() => handleCompleteGachaTask(setTasks, toast, gachaTaskVal)}
-                gachaTaskVal={gachaTaskVal}
-                gachaLock={gachaLock}
-              />
+              {currentUser?.role === 'part' ? (
+                <GachaView
+                  isActive={activePage === 'gacha'}
+                  gLog={gLog}
+                  handleGacha={() => handleGacha(tasks, currentUser, setTasks, setGLog, toast, setGachaLock)}
+                  handleCompleteGachaTask={() => handleCompleteGachaTask(setTasks, toast, gachaTaskVal)}
+                  gachaTaskVal={gachaTaskVal}
+                  gachaLock={gachaLock}
+                />
+              ) : null}
               {/* Approval view moved into the Dashboard */}
               <BusinessInfoView
                 isActive={activePage === 'business-info'}
