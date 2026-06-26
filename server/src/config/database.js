@@ -1,36 +1,12 @@
-import { MongoClient } from 'mongodb';
-import dotenv from 'dotenv';
-import path from 'path';
-
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-
-const url = 'mongodb+srv://harutsugu0528_db_user:7XPStHJXpgloVF2a@taskluckcluster.uvohavf.mongodb.net/taskluck?appName=TaskLuckCluster';
-const dbName = 'taskluck'; // あなたのデータベース名に合わせてください
-
-let client;
-let db;
+import mongoose from 'mongoose';
 
 export const connectDatabase = async () => {
-  try {
-    if (db) return db;
-    
-    console.log('=> データベースに接続します...');
-    client = new MongoClient(url);
-    await client.connect();
-    
-    db = client.db(dbName);
-    console.log('MongoDB connection established successfully.');
-    return db;
-  } catch (error) {
-    console.error('MongoDB connection failed:', error.message);
-    throw error;
-  }
-};
+  const mongoUri = process.env.MONGODB_URI;
 
-// コントローラーからDB操作用オブジェクトを呼び出すための関数
-export const getDb = () => {
-  if (!db) {
-    throw new Error('Database not initialized. Call connectDatabase first.');
+  if (!mongoUri) {
+    throw new Error('MONGODB_URI is not set');
   }
-  return db;
+
+  await mongoose.connect(mongoUri);
+  console.log('MongoDB connected');
 };

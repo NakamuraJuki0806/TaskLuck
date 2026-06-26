@@ -22,6 +22,8 @@ export interface User {
   monthlySalary?: number;
 }
 
+export type ShiftAssignment = 'hall' | 'kitchen';
+
 export interface Shift {
   id: number;
   uid: number;
@@ -30,6 +32,8 @@ export interface Shift {
   e: string;
   st: ShiftStatus;
   isOff?: boolean;
+  memo?: string;
+  assignments?: ShiftAssignment[];
 }
 
 export interface ShiftPattern {
@@ -149,11 +153,16 @@ export const BUSINESS_INFO_INITIAL: BusinessInfo = {
   ],
 };
 export const USERS_INITIAL: User[] = [
-  { id: 1, name: '田中 店長', role: 'manager', xp: 0, ini: '田', password: 'pass0001', monthlySalary: 350010 },
-  { id: 2, name: '佐藤 花子', role: 'staff', xp: 320, ini: '佐', password: 'pass0002', monthlySalary: 250010 },
+  { id: 1, name: '田中 店長', role: 'manager', xp: 0, ini: '田', password: 'pass0001', monthlySalary: 350000 },
+  { id: 2, name: '佐藤 花子', role: 'staff', xp: 320, ini: '佐', password: 'pass0002', monthlySalary: 250000 },
   { id: 3, name: '鈴木 一郎', role: 'part', xp: 180, ini: '鈴', password: 'pass0003', hourlyWage: 1100 },
   { id: 4, name: '高橋 美咲', role: 'part', xp: 90, ini: '高', password: 'pass0004', hourlyWage: 1050 },
   { id: 5, name: '山田 健太', role: 'part', xp: 230, ini: '山', password: 'pass0005', hourlyWage: 1100 },
+  { id: 6, name: '中村 葵', role: 'part', xp: 120, ini: '中', password: 'pass0006', hourlyWage: 1080 },
+  { id: 7, name: '伊藤 優', role: 'part', xp: 160, ini: '伊', password: 'pass0007', hourlyWage: 1080 },
+  { id: 8, name: '小林 拓', role: 'staff', xp: 210, ini: '小', password: 'pass0008', monthlySalary: 240000 },
+  { id: 9, name: '加藤 美咲', role: 'part', xp: 80, ini: '加', password: 'pass0009', hourlyWage: 1050 },
+  { id: 10, name: '渡辺 蓮', role: 'part', xp: 140, ini: '渡', password: 'pass0010', hourlyWage: 1050 },
 ];
 
 export const SHIFTS_INITIAL: Shift[] = [

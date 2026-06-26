@@ -1,8 +1,8 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 import './App.css';
 import { Role, Priority, TaskStatus, User, Shift, ShiftPattern, Task, Notification } from './models';
 import useAppController from './controllers/useAppController';
-import { AuthView, DashboardView, ShiftView, TaskView, GachaView, BusinessInfoView, StaffView, NotificationPanel } from './views';
+import { AuthView, DashboardView, ShiftView, ShiftEditView, TaskView, GachaView, BusinessInfoView, StaffView, NotificationPanel } from './views';
 import ShiftRequestScreen from './views/ShiftRequestScreen';
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -26,28 +26,28 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 
 const ICONS: Record<string, React.JSX.Element> = {
   home: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
   ),
   cal: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
   ),
   check: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
   ),
   dice: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="2" width="20" height="20" rx="3" /><circle cx="8" cy="8" r="1.2" fill="currentColor" /><circle cx="16" cy="8" r="1.2" fill="currentColor" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /><circle cx="8" cy="16" r="1.2" fill="currentColor" /><circle cx="16" cy="16" r="1.2" fill="currentColor" /></svg>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="2" width="20" height="20" rx="3"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="16" cy="8" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="8" cy="16" r="1.2" fill="currentColor"/><circle cx="16" cy="16" r="1.2" fill="currentColor"/></svg>
   ),
   shield: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
   ),
   settings: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3" /><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.98 2.98l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m2.98-2.98l4.24-4.24M19.78 19.78l-4.24-4.24m-2.98-2.98l-4.24-4.24" /></svg>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.98 2.98l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m2.98-2.98l4.24-4.24M19.78 19.78l-4.24-4.24m-2.98-2.98l-4.24-4.24"/></svg>
   ),
   bell: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 1 0-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 1 0-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
   ),
   users: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
   ),
 };
 
@@ -70,59 +70,6 @@ export default function App() {
     handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, staffStats,
     handleTaskTogglePool,
   } = controller;
-
-  // APIを使って削除し、その後でデータを更新する専用の関数
-const handleDeleteTaskApi = async (taskId: string) => {
-  if (!window.confirm("本当に削除しますか？")) return;
-
-  try {
-    const res = await fetch(`http://localhost:5001/api/tasks/${taskId}`, {
-      method: 'DELETE',
-    });
-
-    if (res.ok) {
-      toast('削除しました');
-      // 削除が成功したら、再度データを全件取得し直す
-      const fetchRes = await fetch('http://localhost:5001/api/tasks');
-      const result = await fetchRes.json();
-      if (result.success) {
-        const formatted = result.data.map((t: any) => ({
-          id: t._id,
-          name: t.task_name,
-          desc: t.description,
-          pri: t.priority.toLowerCase() as Priority,
-          xp: t.xp,
-          st: t.task_type === 'NORMAL' ? 'pending' : 'done',
-          to: null, 
-          inPool: t.is_gacha_target
-        }));
-        setTasks(formatted); // 画面を更新！
-      }
-    } else {
-      toast('削除に失敗しました');
-    }
-  } catch (error) {
-    console.error("削除エラー:", error);
-  }
-};
-
- useEffect(() => {
-    const fetchTasksFromDB = async () => {
-      try {
-        const response = await fetch('http://localhost:5001/api/tasks');
-        const tasksArray = await response.json(); // 直接配列として受け取る
-        
-        // 配列であることを確認して状態を更新
-        if (Array.isArray(tasksArray)) {
-          setTasks(tasksArray);
-        }
-      } catch (e) {
-        console.error("データ取得エラー:", e);
-      }
-    };
-    fetchTasksFromDB();
-  }, [setTasks]);
-
 
   const dsObj = useMemo(() => dashboardStats(shifts, tasks, currentUser, isMgr), [shifts, tasks, currentUser, isMgr]);
   const todayShifts = useMemo(() => renderTodayShifts(shifts, users, currentUser), [shifts, users, currentUser]);
@@ -147,7 +94,7 @@ const handleDeleteTaskApi = async (taskId: string) => {
               <button className="btn btn-sm btn-danger" type="button" onClick={() => handleApproval(task.id, false, setTasks, tasks, setUsers, toast)}>却下</button>
             </>
           ) : (
-            <button className="btn btn-sm btn-danger" type="button" onClick={() => handleDeleteTaskApi(String((task.id)))}>削除</button>
+            <button className="btn btn-sm btn-danger" type="button" onClick={() => handleTaskDelete(task.id, setTasks, toast)}>削除</button>
           )}
         </>
       );
@@ -214,7 +161,7 @@ const handleDeleteTaskApi = async (taskId: string) => {
               </nav>
               <div className="sb-footer">
                 <button className="btn-logout" type="button" onClick={logout}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                   ログアウト
                 </button>
               </div>
@@ -238,7 +185,7 @@ const handleDeleteTaskApi = async (taskId: string) => {
                 isActive={activePage === 'shift'}
                 isMgr={isMgr}
                 onOpenShiftRequest={() => handleNav('shift-request')}
-                onOpenShiftCreate={() => { setModal('modal-cs'); setCsDate(todayIso); }}
+                onOpenShiftCreate={() => handleNav('shift-edit')}
                 cal={cal}
                 currentMonthLabel={currentMonthLabel}
                 setCm={setCm}
@@ -257,6 +204,19 @@ const handleDeleteTaskApi = async (taskId: string) => {
                 onShiftRequestSubmit={() => handleShiftRequestSubmit(currentUser, reqDate, reqStart, reqEnd, setShifts, setModal, toast)}
                 onShiftCreateSubmit={() => handleShiftCreateSubmit(csUid, csDate, csStart, csEnd, setShifts, setModal, toast)}
                 businessInfo={businessInfo}
+              />
+
+              <ShiftEditView
+                isActive={activePage === 'shift-edit'}
+                cal={cal}
+                currentMonthLabel={currentMonthLabel}
+                setCm={setCm}
+                users={users}
+                shifts={shifts}
+                setShifts={setShifts}
+                todayIso={todayIso}
+                toast={toast}
+                onBack={() => handleNav('shift')}
               />
 
               <ShiftRequestScreen
@@ -302,20 +262,18 @@ const handleDeleteTaskApi = async (taskId: string) => {
                   priorityBadge={priorityBadge}
                   statusBadge={statusBadge}
                   renderTaskActions={renderTaskActions}
-                  toggleTaskPool={(id, inPool) => handleTaskTogglePool(id, inPool, setTasks)}
+                  toggleTaskPool={(id,inPool)=>handleTaskTogglePool(id,inPool,setTasks)}
                   onOpenTaskModal={() => setModal('modal-ct')}
                 />
               ) : null}
-              {currentUser?.role === 'part' ? (
-                <GachaView
-                  isActive={activePage === 'gacha'}
-                  gLog={gLog}
-                  handleGacha={() => handleGacha(tasks, currentUser, setTasks, setGLog, toast, setGachaLock)}
-                  handleCompleteGachaTask={() => handleCompleteGachaTask(setTasks, toast, gachaTaskVal)}
-                  gachaTaskVal={gachaTaskVal}
-                  gachaLock={gachaLock}
-                />
-              ) : null}
+              <GachaView
+                isActive={activePage === 'gacha'}
+                gLog={gLog}
+                handleGacha={() => handleGacha(tasks, currentUser, setTasks, setGLog, toast, setGachaLock)}
+                handleCompleteGachaTask={() => handleCompleteGachaTask(setTasks, toast, gachaTaskVal)}
+                gachaTaskVal={gachaTaskVal}
+                gachaLock={gachaLock}
+              />
               {/* Approval view moved into the Dashboard */}
               <BusinessInfoView
                 isActive={activePage === 'business-info'}
@@ -345,8 +303,8 @@ const handleDeleteTaskApi = async (taskId: string) => {
           onRead={readNotif}
           onClear={clearNotifs}
           isMgr={isMgr}
-          onApprove={(taskId: number) => handleNotificationAction(taskId, true)}
-          onReject={(taskId: number) => handleNotificationAction(taskId, false)}
+          onApprove={(taskId:number) => handleNotificationAction(taskId, true)}
+          onReject={(taskId:number) => handleNotificationAction(taskId, false)}
         />
       ) : null}
 
@@ -381,37 +339,7 @@ const handleDeleteTaskApi = async (taskId: string) => {
           <div className="mfg"><label>XP報酬</label><input type="number" value={ctXp} min={10} max={200} step={10} onChange={(event) => setCtXp(Number(event.target.value))} /></div>
           <div className="mf">
             <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
-            <button
-              className="btn btn-dark"
-              type="button"
-              onClick={async () => {
-                // 1. APIにPOST送信
-                const res = await fetch('http://localhost:5001/api/tasks', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    name: ctName,
-                    desc: ctDesc,
-                    pri: ctPri,
-                    xp: ctXp,
-                    inPool: true
-                  })
-                });
-
-                if (res.ok) {
-                  toast('タスクを追加しました');
-                  setModal(null);
-                  // 2. 画面を更新するために、もう一度データを取り直す
-                  const fetchRes = await fetch('http://localhost:5001/api/tasks');
-                  const tasksArray = await fetchRes.json();
-                  if (Array.isArray(tasksArray)) {
-                    setTasks(tasksArray); // バックエンドから届いた整形済みの配列をそのままセット
-                  }
-                }
-              }}
-            >
-              追加
-            </button>
+            <button className="btn btn-dark" type="button" onClick={() => handleTaskCreateSubmit(ctName, ctDesc, ctPri, ctXp, currentUser, setTasks, setModal, toast)}>追加</button>
           </div>
         </div>
       </div>
@@ -420,7 +348,7 @@ const handleDeleteTaskApi = async (taskId: string) => {
         <div className="modal">
           <h3>スタッフを追加</h3>
           <div className="mfg"><label>名前</label><input type="text" value={asName} onChange={(event) => setAsName(event.target.value)} placeholder="山田 太郎" /></div>
-          <div className="mfg"><label>役割</label><select value={asRole} onChange={(event) => { setAsRole(event.target.value as Role); setAsSalary(event.target.value === 'part' ? 1050 : 250010); }}>
+          <div className="mfg"><label>役割</label><select value={asRole} onChange={(event) => { setAsRole(event.target.value as Role); setAsSalary(event.target.value === 'part' ? 1050 : 250000); }}>
             <option value="part">アルバイト</option>
             <option value="staff">社員</option>
           </select></div>

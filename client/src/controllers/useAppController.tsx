@@ -27,7 +27,7 @@ export default function useAppController() {
   const [cy, setCy] = useState(2025);
   const [cm, setCm] = useState(5);
   const [tFilter, setTFilter] = useState<TaskStatus | 'all'>('all');
-  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'shift-request' | 'task' | 'gacha' | 'business-info' | 'staff' | 'notifications'>('dashboard');
+  const [activePage, setActivePage] = useState<'dashboard' | 'shift' | 'shift-request' | 'task' | 'gacha' | 'business-info' | 'staff' | 'notifications' | 'shift-edit'>('dashboard');
   const [modal, setModal] = useState<string | null>(null);
   const [toastText, setToastText] = useState('');
   const [gachaLock, setGachaLock] = useState(false);
@@ -159,7 +159,7 @@ export default function useAppController() {
     { id: 'notifications', lbl: '通知', ic: 'bell' },
   ].filter((item) => {
     if (item.mgrOnly && !isMgr) return false;
-    if (item.partOnly && currentUser?.role !== 'part') return false;
+    if (item.partOnly && currentUser?.role === 'manager') return false;
     if (item.id === 'task' && currentUser?.role === 'part') return false;
     return true;
   }), [currentUser, isMgr]);
@@ -242,7 +242,7 @@ export default function useAppController() {
     return list;
   };
 
-  const gachaTask = (tasksParam: Task[], currentUserParam: User | null) => tasksParam.find((task) => task.to === currentUserParam?.id && (task.st === 'in_progress' || task.st === 'review'));
+  const gachaTask = (tasksParam: Task[], currentUserParam: User | null) => tasksParam.find((task) => task.to === currentUserParam?.id && task.st === 'in_progress');
 
   const handleShiftRequestSubmit = (currentUserParam: User | null, date: string, s: string, e: string, setShiftsFn: (fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => {
     if (!date||!s||!e){toastFn('日付と時間を入力してください');return;}

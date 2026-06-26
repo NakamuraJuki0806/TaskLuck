@@ -6,3 +6,4 @@ export { GachaView } from './GachaView';
 export { BusinessInfoView } from './BusinessInfoView';
 export { StaffView } from './StaffView';
 export { NotificationPanel } from './NotificationPanel';
+export { default as ShiftEditView } from './ShiftEditView';

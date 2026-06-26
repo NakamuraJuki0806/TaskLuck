@@ -1,4 +1,4 @@
-﻿import { type ReactNode, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Priority, TaskStatus, User, Shift, Task } from '../models';
 
 type DashboardViewProps = {
@@ -36,61 +36,37 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
   };
 
   const rankingData = getRankingData(rankingTab);
-  const maxXp = rankingData.length > 0 ? Math.max(...rankingData.map((u) => u.xp ?? 0)) : 0;
-  const maxCompleted = rankingData.length > 0 ? Math.max(...rankingData.map((u) => u.completedCount ?? 0)) : 0;
-  const xpScaleMax = Math.max(maxXp, 1);
-  const completedScaleMax = Math.max(maxCompleted, 1);
+  const maxXp = rankingData.length > 0 ? Math.max(...rankingData.map((u) => u.xp ?? 0)) : 100;
+  const maxCompleted = rankingData.length > 0 ? Math.max(...rankingData.map((u) => u.completedCount ?? 0)) : 10;
 
-  const allCompletedTasks = tasks.filter((t) => t.st === 'done').length;
-  const taskCompletionRate = tasks.length > 0 ? Math.round((allCompletedTasks / tasks.length) * 100) : 0;
-  const isStaff = currentUser?.role === 'staff';
-  const isPart = currentUser?.role === 'part';
-
-  const renderRoleStats = () => {
-    if (isMgr) {
-      return (
-        <div className="stats" id="ds">
-          <div className="sc">
-            <div className="sl">全体タスク消化率</div>
-            <div className="sv">{taskCompletionRate}%</div>
-            <div className="xp-wrap"><div className="xp-bar" style={{ width: `${taskCompletionRate}%`, backgroundColor: '#3b82f6' }} /></div>
-          </div>
-        </div>
-      );
-    }
-
-    if (isPart) {
-      return (
-        <div className="stats" id="ds">
-          <div className="sc"><div className="sl">レベル</div><div className="sv">Lv.{Math.floor((currentUser?.xp ?? 0) / 100) + 1}</div></div>
-          <div className="sc"><div className="sl">合計 XP</div><div className="sv">{currentUser?.xp ?? 0}</div></div>
-          <div className="sc">
-            <div className="sl">次LVまで</div>
-            <div className="sv" style={{ fontSize: '16px' }}>{(currentUser?.xp ?? 0) % 100}<span style={{ fontSize: '11px', color: '#aaa' }}>/100</span></div>
-            <div className="xp-wrap"><div className="xp-bar" style={{ width: `${(currentUser?.xp ?? 0) % 100}%` }} /></div>
-          </div>
-        </div>
-      );
-    }
-
-    return null;
-  };
+  const userTotalTasks = tasks.filter((t) => t.to === currentUser?.id).length;
+  const userCompletedTasks = tasks.filter((t) => t.to === currentUser?.id && t.st === 'done').length;
+  const taskCompletionRate = userTotalTasks > 0 ? Math.round((userCompletedTasks / userTotalTasks) * 100) : 0;
 
   return (
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-dashboard">
       <div className="ph">
         <div><div className="pt">ダッシュボード</div><div className="ps" id="dd">{new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</div></div>
       </div>
-      {!isMgr && (
-        <div className="stats" id="ds-top" style={{ marginBottom: '12px' }}>
-          <div className="sc">
-            <div className="sl">全体タスク消化率</div>
-            <div className="sv">{taskCompletionRate}%</div>
-            <div className="xp-wrap"><div className="xp-bar" style={{ width: `${taskCompletionRate}%`, backgroundColor: '#3b82f6' }} /></div>
-          </div>
-        </div>
-      )}
-      {renderRoleStats()}
+      <div className="stats" id="ds">{
+        !isMgr && (
+          <>
+            <div className="sc"><div className="sl">レベル</div><div className="sv">Lv.{Math.floor((currentUser?.xp ?? 0) / 100) + 1}</div></div>
+            <div className="sc"><div className="sl">合計 XP</div><div className="sv">{currentUser?.xp ?? 0}</div></div>
+            <div className="sc"><div className="sl">進行中タスク</div><div className="sv">{dsObj.myTasks.length}</div></div>
+            <div className="sc">
+              <div className="sl">次LVまで</div>
+              <div className="sv" style={{ fontSize: '16px' }}>{(currentUser?.xp ?? 0) % 100}<span style={{ fontSize: '11px', color: '#aaa' }}>/100</span></div>
+              <div className="xp-wrap"><div className="xp-bar" style={{ width: `${(currentUser?.xp ?? 0) % 100}%` }} /></div>
+            </div>
+            <div className="sc">
+              <div className="sl">タスク消化率</div>
+              <div className="sv">{taskCompletionRate}%</div>
+              <div className="xp-wrap"><div className="xp-bar" style={{ width: `${taskCompletionRate}%`, backgroundColor: '#3b82f6' }} /></div>
+            </div>
+          </>
+        )
+      }</div>
       {isMgr ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px', alignItems: 'stretch' }}>
           <div className="card" style={{ display: 'flex', flexDirection: 'column' }}><div className="sec-lbl">今日のシフト</div><div id="dt-shifts" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>{
@@ -177,12 +153,12 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
                         <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#888', marginBottom: '4px' }}>
                           <span>XP: <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{user.xp ?? 0}</span></span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ flex: 1, minWidth: 0, height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
-                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#bc29ea', width: `${Math.min(((user.xp ?? 0) / xpScaleMax) * 100, 100)}%`, left: 0, top: 0 }} />
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          <div style={{ width: '100%', maxWidth: '120px', height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#bc29ea', width: `${((user.xp ?? 0) / maxXp) * 100}%`, left: 0, top: 0 }} />
                           </div>
-                          <span style={{ width: '40px', textAlign: 'right', fontSize: '10px', color: '#999' }}>
-                            {user.xp ?? 0}
+                          <span style={{ fontSize: '10px', color: '#999', minWidth: '40px', textAlign: 'right' }}>
+                            {user.xp ?? 0}/{maxXp}
                           </span>
                         </div>
                       </>
@@ -191,12 +167,12 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
                         <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#888', marginBottom: '4px' }}>
                           <span>完了: <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{user.completedCount ?? 0}</span></span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ flex: 1, minWidth: 0, height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
-                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#3b82f6', width: `${Math.min(((user.completedCount ?? 0) / completedScaleMax) * 100, 100)}%`, left: 0, top: 0 }} />
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          <div style={{ width: '100%', maxWidth: '120px', height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#3b82f6', width: `${((user.completedCount ?? 0) / Math.max(maxCompleted, 1)) * 100}%`, left: 0, top: 0 }} />
                           </div>
-                          <span style={{ width: '40px', textAlign: 'right', fontSize: '10px', color: '#999' }}>
-                            {user.completedCount ?? 0}
+                          <span style={{ fontSize: '10px', color: '#999', minWidth: '40px', textAlign: 'right' }}>
+                            {user.completedCount ?? 0}/{maxCompleted}
                           </span>
                         </div>
                       </>
@@ -294,12 +270,12 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
                         <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#888', marginBottom: '4px' }}>
                           <span>XP: <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{user.xp ?? 0}</span></span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ flex: 1, minWidth: 0, height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
-                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#bc29ea', width: `${Math.min(((user.xp ?? 0) / xpScaleMax) * 100, 100)}%`, left: 0, top: 0 }} />
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          <div style={{ width: '100%', maxWidth: '120px', height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#bc29ea', width: `${((user.xp ?? 0) / maxXp) * 100}%`, left: 0, top: 0 }} />
                           </div>
-                          <span style={{ width: '40px', textAlign: 'right', fontSize: '10px', color: '#999' }}>
-                            {user.xp ?? 0}
+                          <span style={{ fontSize: '10px', color: '#999', minWidth: '40px', textAlign: 'right' }}>
+                            {user.xp ?? 0}/{maxXp}
                           </span>
                         </div>
                       </>
@@ -308,12 +284,12 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
                         <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#888', marginBottom: '4px' }}>
                           <span>完了: <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{user.completedCount ?? 0}</span></span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ flex: 1, minWidth: 0, height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
-                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#3b82f6', width: `${Math.min(((user.completedCount ?? 0) / completedScaleMax) * 100, 100)}%`, left: 0, top: 0 }} />
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          <div style={{ width: '100%', maxWidth: '120px', height: '4px', backgroundColor: '#f0f0f0', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+                            <div style={{ position: 'absolute', height: '100%', backgroundColor: '#3b82f6', width: `${((user.completedCount ?? 0) / Math.max(maxCompleted, 1)) * 100}%`, left: 0, top: 0 }} />
                           </div>
-                          <span style={{ width: '40px', textAlign: 'right', fontSize: '10px', color: '#999' }}>
-                            {user.completedCount ?? 0}
+                          <span style={{ fontSize: '10px', color: '#999', minWidth: '40px', textAlign: 'right' }}>
+                            {user.completedCount ?? 0}/{maxCompleted}
                           </span>
                         </div>
                       </>
@@ -357,4 +333,3 @@ export function DashboardView({ isActive, isMgr, currentUser, dsObj, tasks, toda
     </div>
   );
 }
-
