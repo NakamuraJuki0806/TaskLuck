@@ -203,22 +203,7 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
                     <input type="number" value={xpMax} min={0} onChange={(e) => setXpMax(e.target.value === '' ? '' : Number(e.target.value))} placeholder="最大" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #e5e5e5', fontSize: '13px' }} />
                   </div>
                 </div>
-                <div style={{ border: '1px solid #e5e5e5', borderRadius: '8px', padding: '14px', backgroundColor: '#fafafa', gridColumn: '1 / -1' }}>
-                  <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '10px', color: '#555' }}>並び替え</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <select value={sortKey} onChange={(e) => setSortKey(e.target.value as any)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #e5e5e5', fontSize: '13px' }}>
-                      <option value="name">名前</option>
-                      <option value="pri">優先度</option>
-                      <option value="to">担当</option>
-                      <option value="xp">XP</option>
-                      <option value="st">状態</option>
-                    </select>
-                    <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value as any)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #e5e5e5', fontSize: '13px' }}>
-                      <option value="asc">昇順</option>
-                      <option value="desc">降順</option>
-                    </select>
-                  </div>
-                </div>
+                {/* 並び替え（ポップアップ内）は削除されました */}
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '18px' }}>
                 <button className="btn" type="button" onClick={() => {
