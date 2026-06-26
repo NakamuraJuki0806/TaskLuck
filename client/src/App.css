@@ -85,6 +85,17 @@ main{flex:1;min-width:0;overflow-y:auto;width:100%}
 .tbl tr:last-child td{border-bottom:none}
 .tbl tbody tr:hover td{background:#fafafa}
 
+.task-board{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.task-board-progress{grid-template-columns:repeat(4, minmax(180px, 1fr))}
+.task-board-column{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px;min-height:320px}
+.task-board-column-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid #e2e8f0;font-size:13px;font-weight:600;color:#1f2937}
+.task-board-column-list{display:flex;flex-direction:column;gap:10px;overflow:auto;min-height:120px}
+.task-board-row{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px;display:flex;gap:12px;align-items:flex-start;cursor:grab}
+.task-board-row.dragging{opacity:.55}
+.task-board-droptarget{transition:background .15s,border-color .15s}
+.task-board-droptarget:hover{background:#eef2ff;border-color:#c7d2fe}
+.task-board-empty{padding:22px 14px;border-radius:10px;background:#f3f4f6;color:#6b7280;text-align:center;font-size:13px}
+
 /* MODAL */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.25);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
 .overlay.open{display:flex}

@@ -67,6 +67,7 @@ export default function App() {
     activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
     handleTaskStart, handleRequestDone, handleTaskDelete, handleTaskCreateSubmit,
+    openTaskModal, handleTaskModalSubmit, editingTaskId,
     handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, staffStats,
     handleTaskTogglePool,
   } = controller;
@@ -303,7 +304,8 @@ const handleDeleteTaskApi = async (taskId: string) => {
                   statusBadge={statusBadge}
                   renderTaskActions={renderTaskActions}
                   toggleTaskPool={(id, inPool) => handleTaskTogglePool(id, inPool, setTasks)}
-                  onOpenTaskModal={() => setModal('modal-ct')}
+                  onOpenTaskModal={() => openTaskModal(null)}
+                  onEditTask={(task) => openTaskModal(task)}
                 />
               ) : null}
               {currentUser?.role === 'part' ? (
@@ -370,7 +372,7 @@ const handleDeleteTaskApi = async (taskId: string) => {
 
       <div className={`overlay ${modal === 'modal-ct' ? 'open' : ''}`} id="modal-ct" onClick={(event) => { if (event.target === event.currentTarget) setModal(null); }}>
         <div className="modal">
-          <h3>タスクを追加</h3>
+          <h3>{editingTaskId === null ? 'タスクを追加' : 'タスクを編集'}</h3>
           <div className="mfg"><label>タスク名</label><input type="text" value={ctName} onChange={(event) => setCtName(event.target.value)} placeholder="例：冷蔵庫の整理" /></div>
           <div className="mfg"><label>詳細</label><input type="text" value={ctDesc} onChange={(event) => setCtDesc(event.target.value)} placeholder="任意" /></div>
           <div className="mfg"><label>優先度</label><select value={ctPri} onChange={(event) => setCtPri(event.target.value as Priority)}>
@@ -381,36 +383,8 @@ const handleDeleteTaskApi = async (taskId: string) => {
           <div className="mfg"><label>XP報酬</label><input type="number" value={ctXp} min={10} max={200} step={10} onChange={(event) => setCtXp(Number(event.target.value))} /></div>
           <div className="mf">
             <button className="btn" type="button" onClick={() => setModal(null)}>キャンセル</button>
-            <button
-              className="btn btn-dark"
-              type="button"
-              onClick={async () => {
-                // 1. APIにPOST送信
-                const res = await fetch('http://localhost:5001/api/tasks', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    name: ctName,
-                    desc: ctDesc,
-                    pri: ctPri,
-                    xp: ctXp,
-                    inPool: true
-                  })
-                });
-
-                if (res.ok) {
-                  toast('タスクを追加しました');
-                  setModal(null);
-                  // 2. 画面を更新するために、もう一度データを取り直す
-                  const fetchRes = await fetch('http://localhost:5001/api/tasks');
-                  const tasksArray = await fetchRes.json();
-                  if (Array.isArray(tasksArray)) {
-                    setTasks(tasksArray); // バックエンドから届いた整形済みの配列をそのままセット
-                  }
-                }
-              }}
-            >
-              追加
+            <button className="btn btn-dark" type="button" onClick={handleTaskModalSubmit}>
+              {editingTaskId === null ? '追加' : '保存'}
             </button>
           </div>
         </div>
