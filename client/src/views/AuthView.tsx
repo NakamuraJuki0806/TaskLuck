@@ -2,8 +2,8 @@ import { type ReactNode } from 'react';
 import { Priority, TaskStatus, User } from '../models';
 
 type AuthViewProps = {
-  loginUserId: number | '';
-  setLoginUserId: (value: number | '') => void;
+  loginUserId: string;
+  setLoginUserId: (value: string) => void;
   handleLogin: () => void;
 };
 
@@ -18,7 +18,7 @@ export function AuthView({ loginUserId, setLoginUserId, handleLogin }: AuthViewP
           <input
             type="text"
             value={loginUserId}
-            onChange={(event) => setLoginUserId(event.target.value ? Number(event.target.value) : '')}
+            onChange={(event) => setLoginUserId(event.target.value)}
             onKeyDown={(event) => event.key === 'Enter' && handleLogin()}
             placeholder="ユーザーIDを入力 (例: 1)"
           />

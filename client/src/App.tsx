@@ -147,9 +147,7 @@ const handleDeleteTaskApi = async (taskId: string) => {
               <button className="btn btn-sm" type="button" style={{ color: '#15803d', borderColor: '#bbf7d0' }} onClick={() => handleApproval(task.id, true, setTasks, tasks, setUsers, toast)}>承認</button>
               <button className="btn btn-sm btn-danger" type="button" onClick={() => handleApproval(task.id, false, setTasks, tasks, setUsers, toast)}>却下</button>
             </>
-          ) : (
-            <button className="btn btn-sm btn-danger" type="button" onClick={() => handleDeleteTaskApi(String((task.id)))}>削除</button>
-          )}
+          ) : null}
         </>
       );
     }
@@ -306,6 +304,7 @@ const handleDeleteTaskApi = async (taskId: string) => {
                   toggleTaskPool={(id, inPool) => handleTaskTogglePool(id, inPool, setTasks)}
                   onOpenTaskModal={() => openTaskModal(null)}
                   onEditTask={(task) => openTaskModal(task)}
+                  onDeleteTask={(taskId) => handleDeleteTaskApi(String(taskId))}
                 />
               ) : null}
               {currentUser?.role === 'part' ? (

@@ -15,9 +15,10 @@ type TaskViewProps = {
   toggleTaskPool: (id: number, inPool: boolean) => void;
   onOpenTaskModal: () => void;
   onEditTask?: (task: Task) => void;
+  onDeleteTask?: (taskId: number) => void;
 };
 
-export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, allTasks, users, priorityBadge, statusBadge, renderTaskActions, toggleTaskPool, onOpenTaskModal, onEditTask }: TaskViewProps) {
+export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, allTasks, users, priorityBadge, statusBadge, renderTaskActions, toggleTaskPool, onOpenTaskModal, onEditTask, onDeleteTask }: TaskViewProps) {
   const [poolFilter, setPoolFilter] = useState<'all' | 'in' | 'out'>('all');
   const [selectedPrios, setSelectedPrios] = useState<Priority[]>([]);
   const [assigneeFilter, setAssigneeFilter] = useState<number | 'all' | 'unassigned'>('all');
@@ -26,6 +27,7 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
   const [sortKey, setSortKey] = useState<'name' | 'pri' | 'to' | 'xp' | 'st'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const [showManageModal, setShowManageModal] = useState(false);
   const [dragTaskId, setDragTaskId] = useState<number | null>(null);
 
   const activeFilterCount = [
@@ -109,9 +111,6 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
           {priorityBadge(task.pri)}
           {renderTaskActions(task)}
-          {onEditTask ? (
-            <button className="btn btn-sm" type="button" onClick={() => onEditTask(task)}>編集</button>
-          ) : null}
         </div>
       </div>
     );
@@ -121,7 +120,12 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
     <div className={`page ${isActive ? 'show' : ''}`} id="pg-task">
       <div className="ph">
         <div><div className="pt">タスク管理</div></div>
-        {isStf ? <button className="btn btn-dark" id="btn-ct" type="button" onClick={onOpenTaskModal}>+ タスク追加</button> : null}
+        {isStf ? (
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <button className="btn btn-dark" type="button" onClick={() => setShowManageModal(true)}>タスク編集</button>
+            <button className="btn btn-dark" id="btn-ct" type="button" onClick={onOpenTaskModal}>+ タスク追加</button>
+          </div>
+        ) : null}
       </div>
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
@@ -238,6 +242,49 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
           </div>
         </div>
 
+        {showManageModal ? (
+          <div className="overlay open" style={{ justifyContent: 'center', alignItems: 'center', display: 'flex' }} onClick={(event) => { if (event.target === event.currentTarget) setShowManageModal(false); }}>
+            <div style={{ background: '#fff', padding: '24px', borderRadius: '12px', width: 'min(760px,100%)', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 15px 45px rgba(0,0,0,0.12)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0 }}>タスク編集</h3>
+                <button className="btn btn-sm" type="button" onClick={() => setShowManageModal(false)}>閉じる</button>
+              </div>
+              {allTasks.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#999' }}>タスクはありません</div>
+              ) : (
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {allTasks.map((task) => {
+                    const assignee = task.to ? users.find((user) => user.id === task.to) : null;
+                    return (
+                      <div key={task.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '14px', border: '1px solid #e5e5e5', borderRadius: '8px' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: '13px', fontWeight: 500 }}>{task.name}</div>
+                            <span style={{ fontSize: '11px', color: '#777' }}>{priorityBadge(task.pri)}</span>
+                            <span style={{ fontSize: '11px', color: '#777' }}>{statusBadge(task.st)}</span>
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#666', marginTop: '6px' }}>{task.desc || '詳細なし'}</div>
+                          <div style={{ fontSize: '11px', color: '#666', marginTop: '6px' }}>
+                            担当: {assignee ? assignee.name : '未割当'} / XP +{task.xp}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                          {onEditTask ? (
+                            <button className="btn btn-sm" type="button" onClick={() => { onEditTask(task); setShowManageModal(false); }}>編集</button>
+                          ) : null}
+                          {onDeleteTask ? (
+                            <button className="btn btn-sm btn-danger" type="button" onClick={() => onDeleteTask(task.id)}>削除</button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+
         {tFilter === 'all' ? (
           <div className="task-board">
             <div
@@ -274,7 +321,7 @@ export function TaskView({ isActive, isStf, tFilter, setTFilter, tasksForView, a
         ) : tFilter === 'progress' ? (
           <div className="task-board task-board-progress">
             {(['pending','in_progress','review','done'] as const).map((status) => (
-              <div key={status} className="task-board-column">
+              <div key={status} className={`task-board-column ${status}`}>
                 <div className="task-board-column-header">
                   <div>{status === 'pending' ? '未着手' : status === 'in_progress' ? '進行中' : status === 'review' ? '承認待ち' : '完了'}</div>
                   <div>{filteredTasks.filter((task) => task.st === status).length}</div>

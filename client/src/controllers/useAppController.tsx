@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Role, Priority, TaskStatus, User, Shift, ShiftPattern, Task, GachaLog, Notification, BusinessInfo, USERS_INITIAL, SHIFTS_INITIAL, SHIFT_PATTERNS_INITIAL, TASKS_INITIAL, BUSINESS_INFO_INITIAL } from '../models';
 
 export default function useAppController() {
-  const [loginUserId, setLoginUserId] = useState<number | ''>('');
+  const [loginUserId, setLoginUserId] = useState<string>('');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(USERS_INITIAL);
   const [shifts, setShifts] = useState<Shift[]>(SHIFTS_INITIAL);
@@ -118,12 +118,22 @@ export default function useAppController() {
   };
 
   const handleLogin = () => {
-    if (!loginUserId) {
+    const normalizedUserId = loginUserId
+      .trim()
+      .replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0));
+
+    if (!normalizedUserId) {
       toast('アカウントを選択してください');
       return;
     }
 
-    const selectedUser = users.find((user) => user.id === loginUserId) ?? null;
+    const parsedUserId = Number(normalizedUserId);
+    if (Number.isNaN(parsedUserId)) {
+      toast('ユーザーIDを正しい形式で入力してください');
+      return;
+    }
+
+    const selectedUser = users.find((user) => user.id === parsedUserId) ?? null;
     if (!selectedUser) {
       toast('アカウントが見つかりません');
       return;
