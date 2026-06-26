@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Role, Priority, TaskStatus, User, Shift, ShiftPattern, Task, GachaLog, Notification, BusinessInfo, USERS_INITIAL, SHIFTS_INITIAL, SHIFT_PATTERNS_INITIAL, TASKS_INITIAL, BUSINESS_INFO_INITIAL } from '../models';
 
 export default function useAppController() {
-  const [loginUserId, setLoginUserId] = useState<number | ''>('');
+  const [loginUserId, setLoginUserId] = useState<string>('');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(USERS_INITIAL);
   const [shifts, setShifts] = useState<Shift[]>(SHIFTS_INITIAL);
@@ -44,6 +44,7 @@ export default function useAppController() {
   const [ctDesc, setCtDesc] = useState('');
   const [ctPri, setCtPri] = useState<Priority>('mid');
   const [ctXp, setCtXp] = useState(50);
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [asName, setAsName] = useState('');
   const [asRole, setAsRole] = useState<Role>('part');
   const [asSalary, setAsSalary] = useState<number>(1050);
@@ -117,12 +118,22 @@ export default function useAppController() {
   };
 
   const handleLogin = () => {
-    if (!loginUserId) {
+    const normalizedUserId = loginUserId
+      .trim()
+      .replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0));
+
+    if (!normalizedUserId) {
       toast('アカウントを選択してください');
       return;
     }
 
-    const selectedUser = users.find((user) => user.id === loginUserId) ?? null;
+    const parsedUserId = Number(normalizedUserId);
+    if (Number.isNaN(parsedUserId)) {
+      toast('ユーザーIDを正しい形式で入力してください');
+      return;
+    }
+
+    const selectedUser = users.find((user) => user.id === parsedUserId) ?? null;
     if (!selectedUser) {
       toast('アカウントが見つかりません');
       return;
@@ -236,9 +247,9 @@ export default function useAppController() {
     });
   };
 
-  const taskList = (tasksParam: Task[], currentUserParam: User | null, isMgrParam: boolean, isStfParam: boolean, tFilterParam: TaskStatus | 'all') => {
+  const taskList = (tasksParam: Task[], currentUserParam: User | null, isMgrParam: boolean, isStfParam: boolean, tFilterParam: TaskStatus | 'all' | 'progress') => {
     let list = isMgrParam || isStfParam ? tasksParam : tasksParam.filter((task) => task.to === currentUserParam?.id || !task.to);
-    if (tFilterParam !== 'all') list = list.filter((task) => task.st === tFilterParam);
+    if (tFilterParam !== 'all' && tFilterParam !== 'progress') list = list.filter((task) => task.st === tFilterParam);
     return list;
   };
 
@@ -287,6 +298,47 @@ export default function useAppController() {
   const handleTaskDelete = (id:number, setTasksFn:(fn:any)=>void, toastFn:(m:string)=>void) => { setTasksFn((prev:any)=>prev.filter((task:any)=>task.id!==id)); toastFn('削除しました'); };
   const handleTaskTogglePool = (id:number, inPool:boolean, setTasksFn:(fn:any)=>void) => { setTasksFn((prev:any)=>prev.map((task:any)=>task.id===id?{...task,inPool}:task)); };
   const handleTaskCreateSubmit = (ctNameParam:string, ctDescParam:string, ctPriParam:Priority, ctXpParam:number, currentUserParam:User | null, setTasksFn:(fn:any)=>void, setModalFn:(m:any)=>void, toastFn:(m:string)=>void) => { if (!ctNameParam.trim()){ toastFn('タスク名を入力してください'); return; } if (!currentUserParam) return; setTasksFn((prev:any)=>[...prev,{id:Date.now(),name:ctNameParam.trim(),desc:ctDescParam.trim(),pri:ctPriParam,xp:ctXpParam,st:'pending',to:null,by:currentUserParam.id,inPool:true}]); setModalFn(null); toastFn('タスクを追加しました'); };
+
+  const openTaskModal = (task: Task | null) => {
+    if (task) {
+      setEditingTaskId(task.id);
+      setCtName(task.name);
+      setCtDesc(task.desc);
+      setCtPri(task.pri);
+      setCtXp(task.xp);
+    } else {
+      setEditingTaskId(null);
+      setCtName('');
+      setCtDesc('');
+      setCtPri('mid');
+      setCtXp(50);
+    }
+    setModal('modal-ct');
+  };
+
+  const handleTaskModalSubmit = async () => {
+    if (!ctName.trim()) { toast('タスク名を入力してください'); return; }
+    const payload = { name: ctName.trim(), desc: ctDesc.trim(), pri: ctPri, xp: ctXp };
+    try {
+      if (editingTaskId === null) {
+        const res = await fetch('http://localhost:5001/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, inPool: true }) });
+        if (!res.ok) throw new Error('タスク追加失敗');
+        toast('タスクを追加しました');
+      } else {
+        const res = await fetch(`http://localhost:5001/api/tasks/${editingTaskId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error('タスク更新失敗');
+        toast('タスクを更新しました');
+      }
+      setModal(null);
+      setEditingTaskId(null);
+      const fetchRes = await fetch('http://localhost:5001/api/tasks');
+      const tasksArray = await fetchRes.json();
+      if (Array.isArray(tasksArray)) setTasks(tasksArray);
+    } catch (err) {
+      console.error(err);
+      toast('タスク保存に失敗しました');
+    }
+  };
 
   const finalizeGachaDraw = (chosen: Task, currentUserParam: User, rkey: string, rarityLabel: string, setTasksFn:(fn:any)=>void, setGLogFn:(fn:any)=>void, toastFn:(m:string)=>void, setGachaLockFn:(b:boolean)=>void) => {
     setTasksFn((prev:any) => prev.map((task:any) => task.id === chosen.id ? { ...task, st: 'in_progress', to: currentUserParam.id } : task));
@@ -364,6 +416,7 @@ export default function useAppController() {
     activeNavItems, todayIso, dashboardStats, renderTodayShifts, dashboardTasks,
     renderCalendar, shiftTableRows, taskList, gachaTask, handleShiftRequestSubmit, handleShiftCreateSubmit,
     handleTaskStart, handleRequestDone, handleTaskDelete, handleTaskTogglePool, handleTaskCreateSubmit,
+    openTaskModal, handleTaskModalSubmit, editingTaskId,
     handleGacha, handleCompleteGachaTask, handleApproval, handleStaffCreate, staffStats,
   } as const;
 }

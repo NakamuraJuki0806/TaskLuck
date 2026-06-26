@@ -62,6 +62,10 @@ export function BusinessInfoView({ isActive, businessInfo, updateBusinessInfo, r
     }));
   };
 
+  const updateRule = (field: 'requiredBreakMinutes' | 'maxWorkHours' | 'maxConsecutiveWorkDays' | 'minStaff', value: number) => {
+    updateBusinessInfo((prev) => ({ ...prev, [field]: Math.max(0, value || 0) }));
+  };
+
   const addSpecialRule = () => {
     updateBusinessInfo((prev) => ({
       ...prev,
@@ -102,6 +106,34 @@ export function BusinessInfoView({ isActive, businessInfo, updateBusinessInfo, r
           <button className="store-btn store-btn-green" type="button" onClick={saveSettings}><StoreIcon type="save" />保存</button>
         </div>
       </div>
+
+      <section className="store-panel rules-panel">
+        <div className="store-section-head">
+          <div className="store-section-icon"><StoreIcon type="clock" /></div>
+          <div>
+            <h2>勤務ルール設定</h2>
+            <p>休憩・最大勤務時間・連勤日数・最低人数を設定します。</p>
+          </div>
+        </div>
+        <div className="rules-grid">
+          <label>
+            <span>休憩時間（分）</span>
+            <input type="number" min={0} value={businessInfo.requiredBreakMinutes} onChange={(event) => updateRule('requiredBreakMinutes', Number(event.target.value))} />
+          </label>
+          <label>
+            <span>最大勤務時間（時間）</span>
+            <input type="number" min={0} value={businessInfo.maxWorkHours} onChange={(event) => updateRule('maxWorkHours', Number(event.target.value))} />
+          </label>
+          <label>
+            <span>連勤日数上限（日）</span>
+            <input type="number" min={0} value={businessInfo.maxConsecutiveWorkDays} onChange={(event) => updateRule('maxConsecutiveWorkDays', Number(event.target.value))} />
+          </label>
+          <label>
+            <span>最低社員数（人）</span>
+            <input type="number" min={0} value={businessInfo.minStaff} onChange={(event) => updateRule('minStaff', Number(event.target.value))} />
+          </label>
+        </div>
+      </section>
 
       <section className="store-panel min-staff-panel">
         <div className="store-section-head">
@@ -148,7 +180,10 @@ export function BusinessInfoView({ isActive, businessInfo, updateBusinessInfo, r
             </div>
           </div>
           <div className="weekday-editor">
-            <div className="weekday-label-spacer"></div>
+            <div className="weekday-label-spacer">
+              <div className="hours-row-label open-label">基本営業時間</div>
+              <div className="hours-row-label close-label">基本終業時間</div>
+            </div>
             {BUSINESS_DAYS.map((day) => {
               const hours = businessInfo.hours[day.key];
               return (
@@ -163,8 +198,6 @@ export function BusinessInfoView({ isActive, businessInfo, updateBusinessInfo, r
                 </div>
               );
             })}
-            <div className="hours-row-label open-label">基本営業時間</div>
-            <div className="hours-row-label close-label">閉じ時</div>
           </div>
         </section>
 
