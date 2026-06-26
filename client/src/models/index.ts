@@ -105,11 +105,19 @@ export interface BusinessInfo {
   hours: Record<BusinessDayKey, BusinessHours>;
   staffing: Record<BusinessDayKey, StaffingRequirement>;
   timeSlotStaffing: TimeSlotStaffing[];
+  requiredBreakMinutes: number;
+  maxWorkHours: number;
+  maxConsecutiveWorkDays: number;
+  minStaff: number;
   specialRules: SpecialBusinessRule[];
 }
 
 export const BUSINESS_INFO_INITIAL: BusinessInfo = {
   regularClosedDays: ['wed'],
+  requiredBreakMinutes: 60,
+  maxWorkHours: 8,
+  maxConsecutiveWorkDays: 5,
+  minStaff: 2,
   hours: {
     mon: { open: '10:00', close: '20:00', closed: false },
     tue: { open: '10:00', close: '20:00', closed: false },
